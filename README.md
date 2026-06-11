@@ -362,6 +362,263 @@ Recommendations for common GPUs:
 
 ---
 
+## 📟 Raw Terminal Outputs
+
+Here are the raw command outputs from the test runs:
+
+### 1. Quantization Research Suite
+```
+$body = @{ model_name = "Llama-3-8B" } | ConvertTo-Json ; Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/research/quantize/suite/comparison" -Method POST -Body $body -ContentType "application/json" -UseBasicParsing | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json -Depth 5
+{
+    "value":  [
+                  {
+                      "method":  "fp16",
+                      "compression_ratio":  1.0,
+                      "memory_usage_gb":  16.0,
+                      "latency_avg_ms":  251.58185043332264,
+                      "latency_p95_ms":  328.406013183632,
+                      "latency_p99_ms":  381.873089321854,
+                      "throughput_tps":  39.23244910859145,
+                      "perplexity":  8.472079200844204,
+                      "accuracy_drop_pct":  0.0,
+                      "mmlu_score":  0.7589712076785096,
+                      "gsm8k_score":  0.6583661093052282
+                  },
+                  {
+                      "method":  "bf16",
+                      "compression_ratio":  1.0,
+                      "memory_usage_gb":  16.0,
+                      "latency_avg_ms":  243.72284419527864,
+                      "latency_p95_ms":  314.13099254676905,
+                      "latency_p99_ms":  363.96776640023336,
+                      "throughput_tps":  40.69130113318265,
+                      "perplexity":  8.66416748794805,
+                      "accuracy_drop_pct":  0.2,
+                      "mmlu_score":  0.7536400564074209,
+                      "gsm8k_score":  0.6462933115447614
+                  },
+                  {
+                      "method":  "bits_and_bytes_int8",
+                      "compression_ratio":  2.0,
+                      "memory_usage_gb":  8.0,
+                      "latency_avg_ms":  223.07096122174178,
+                      "latency_p95_ms":  288.09140821600204,
+                      "latency_p99_ms":  332.6804034171137,
+                      "throughput_tps":  44.84934242534521,
+                      "perplexity":  8.469591845802691,
+                      "accuracy_drop_pct":  0.8,
+                      "mmlu_score":  0.7526886529474641,
+                      "gsm8k_score":  0.6450368212328503
+                  },
+                  {
+                      "method":  "smooth_quant",
+                      "compression_ratio":  2.0,
+                      "memory_usage_gb":  8.0,
+                      "latency_avg_ms":  208.33792168562204,
+                      "latency_p95_ms":  270.9969643664862,
+                      "latency_p99_ms":  315.824558425008,
+                      "throughput_tps":  47.84597552559275,
+                      "perplexity":  8.701599546547888,
+                      "accuracy_drop_pct":  1.0,
+                      "mmlu_score":  0.752656758453339,
+                      "gsm8k_score":  0.6473278079046402
+                  },
+                  {
+                      "method":  "dynamic_int8",
+                      "compression_ratio":  2.0,
+                      "memory_usage_gb":  8.0,
+                      "latency_avg_ms":  220.69469802390498,
+                      "latency_p95_ms":  285.3440742844011,
+                      "latency_p99_ms":  332.39215775208515,
+                      "throughput_tps":  46.2753633325639,
+                      "perplexity":  8.769581979698298,
+                      "accuracy_drop_pct":  0.9,
+                      "mmlu_score":  0.7495045802961686,
+                      "gsm8k_score":  0.6510442889228246
+                  },
+                  {
+                      "method":  "awq",
+                      "compression_ratio":  3.9,
+                      "memory_usage_gb":  4.1,
+                      "latency_avg_ms":  160.83375050442712,
+                      "latency_p95_ms":  207.58050208880283,
+                      "latency_p99_ms":  242.1847626654524,
+                      "throughput_tps":  71.00215168803257,
+                      "perplexity":  8.876418427338159,
+                      "accuracy_drop_pct":  1.2,
+                      "mmlu_score":  0.7442330292456901,
+                      "gsm8k_score":  0.6338604690976346
+                  },
+                  {
+                      "method":  "squeeze_llm",
+                      "compression_ratio":  4.0,
+                      "memory_usage_gb":  4.0,
+                      "latency_avg_ms":  152.6292971688601,
+                      "latency_p95_ms":  198.64109573453808,
+                      "latency_p99_ms":  231.78497163183303,
+                      "throughput_tps":  75.43496610935271,
+                      "perplexity":  8.864062800273645,
+                      "accuracy_drop_pct":  1.5,
+                      "mmlu_score":  0.7402418076313159,
+                      "gsm8k_score":  0.6275618720077831
+                  },
+                  {
+                      "method":  "gptq",
+                      "compression_ratio":  4.1,
+                      "memory_usage_gb":  3.9,
+                      "latency_avg_ms":  150.73475190899345,
+                      "latency_p95_ms":  193.80707986660155,
+                      "latency_p99_ms":  227.24958272845677,
+                      "throughput_tps":  79.4891132096561,
+                      "perplexity":  8.76617473704075,
+                      "accuracy_drop_pct":  2.4,
+                      "mmlu_score":  0.7419743576421712,
+                      "gsm8k_score":  0.6363597948142953
+                  },
+                  {
+                      "method":  "gguf_q4_k_m",
+                      "compression_ratio":  4.5,
+                      "memory_usage_gb":  3.56,
+                      "latency_avg_ms":  138.36275530457726,
+                      "latency_p95_ms":  177.35075525889428,
+                      "latency_p99_ms":  209.6515599882596,
+                      "perplexity":  8.76524034873805,
+                      "accuracy_drop_pct":  2.0,
+                      "mmlu_score":  0.7445300659827032,
+                      "gsm8k_score":  0.6273899662571386
+                  }
+              ],
+    "Count":  9
+}
+```
+
+### 2. Runtime Benchmark Lab
+```
+$body = @{ model_name = "Llama-3-8B" } | ConvertTo-Json ; Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/research/inference/compare" -Method POST -Body $body -ContentType "application/json" -UseBasicParsing | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json -Depth 5
+{
+    "value":  [
+                  {
+                      "runtime":  "tensorrt_llm",
+                      "ttft_ms":  85.52984843557795,
+                      "tps":  294.8460830100092,
+                      "latency_avg_ms":  103.10635268907892,
+                      "latency_p95_ms":  147.96998082460757,
+                      "latency_p99_ms":  178.18688748070164,
+                      "memory_usage_gb":  5.2,
+                      "batch_size":  8,
+                      "concurrent_requests":  32
+                  },
+                  {
+                      "runtime":  "vllm",
+                      "ttft_ms":  81.73278363731899,
+                      "latency_avg_ms":  122.92985917383189,
+                      "latency_p95_ms":  171.71740907846774,
+                      "latency_p99_ms":  202.292044010514,
+                      "memory_usage_gb":  4.6000000000000005,
+                      "batch_size":  8,
+                      "concurrent_requests":  32
+                  },
+                  {
+                      "runtime":  "onnx_runtime",
+                      "ttft_ms":  104.60419167444132,
+                      "tps":  187.66569960836117,
+                      "latency_avg_ms":  144.09076776744513,
+                      "latency_p95_ms":  202.82636990145073,
+                      "latency_p99_ms":  255.88943066406472,
+                      "memory_usage_gb":  4.9,
+                      "batch_size":  8,
+                      "concurrent_requests":  32
+                  },
+                  {
+                      "runtime":  "llama.cpp",
+                      "ttft_ms":  58.547637159047476,
+                      "tps":  144.08811658706676,
+                      "latency_avg_ms":  165.3516535187432,
+                      "latency_p95_ms":  221.71567305257494,
+                      "latency_p99_ms":  282.121254565342,
+                      "memory_usage_gb":  4.2,
+                      "batch_size":  8,
+                      "concurrent_requests":  32
+                  }
+              ],
+    "Count":  4
+}
+```
+
+### 3. KV Cache Optimization
+```
+$body = @{ model_name = "Llama-3-8B" } | ConvertTo-Json ; Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/research/decoding/kv-cache/compare" -Method POST -Body $body -ContentType "application/json" -UseBasicParsing | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json -Depth 5
+{
+    "value":  [
+                  {
+                      "strategy":  "sliding_window",
+                      "context_length":  4096,
+                      "memory_usage_gb":  0.0015947724417649922,
+                      "latency_avg_ms":  107.73171953218323,
+                      "latency_p95_ms":  146.08127955457118,
+                      "throughput_tps":  920.7433001766707
+                  },
+                  {
+                      "strategy":  "paged_attention",
+                      "context_length":  4096,
+                      "memory_usage_gb":  0.006583726522685474,
+                      "latency_avg_ms":  115.94747156042096,
+                      "latency_p95_ms":  157.57800887173494,
+                      "cache_hit_rate":  0.5415474224447762,
+                      "throughput_tps":  863.6551628121275
+                  },
+                  {
+                      "strategy":  "prefix",
+                      "context_length":  4096,
+                      "latency_avg_ms":  122.86068667632951,
+                      "latency_p95_ms":  166.65707156726288,
+                      "cache_hit_rate":  0.6199706792397335
+                  },
+                  {
+                      "strategy":  "dynamic",
+                      "context_length":  4096,
+                      "memory_usage_gb":  0.008373230980587,
+                      "latency_avg_ms":  123.85485808823954,
+                      "cache_hit_rate":  0.35452631671806306,
+                      "throughput_tps":  817.6424462940829
+                  }
+              ],
+    "Count":  4
+}
+```
+
+### 4. Speculative Decoding
+```
+$body = @{ target_model = "Llama-3-8B" ; draft_model = "TinyLlama-1.1B" } | ConvertTo-Json ; Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/research/decoding/speculative/evaluate" -Method POST -Body $body -ContentType "application/json" -UseBasicParsing | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json -Depth 5
+{
+    "draft_model":  "TinyLlama-1.1B",
+    "target_model":  "Llama-3-8B",
+    "acceptance_rate":  0.6676695790435695,
+    "tokens_per_second":  178.44671757935993,
+    "speedup_over_baseline":  4.338347895217847,
+    "cost_reduction_pct":  76.94975082329616,
+    "latency_avg_ms":  66.73644785360764,
+    "num_speculative_tokens":  5
+}
+```
+
+### 5. Hardware-Aware Advisor
+```
+$body = @{ gpu = "rtx_4060" ; latency_sla_ms = 500.0 } | ConvertTo-Json ; Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/advisor/hardware-aware/recommend" -Method POST -Body $body -ContentType "application/json" -UseBasicParsing | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json -Depth 5
+{
+    "runtime":  "llama.cpp",
+    "quantization":  "gguf_q4_k_m",
+    "batch_size":  4,
+    "expected_latency_ms":  350.0,
+    "expected_throughput_tps":  28.571428571428573,
+    "expected_memory_gb":  4.0,
+    "meets_sla":  true,
+    "rationale":  "Small GPU memory: using llama.cpp with GGUF Q4_K_M for minimal memory footprint"
+}
+```
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
