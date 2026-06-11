@@ -5,7 +5,7 @@
 
 InferLite is a comprehensive platform designed for LLM optimization engineers, providing tools for quantization research, runtime benchmarking, KV cache optimization, speculative decoding, and hardware-aware deployment recommendations.
 
-## 🎯 Key Features & Results (Llama-3-8B)
+## Key Features & Results (Llama-3-8B)
 
 All tests were run in simulation mode, validated against published research.
 
