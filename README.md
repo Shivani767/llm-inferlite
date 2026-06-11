@@ -1,19 +1,18 @@
-# InferLite: LLM Inference & Optimization Research Platform
 
-**An open-source research engine for LLM inference, quantization, and distributed serving—perfect for job applications and academic papers.**
+# InferLite: LLM Inference & Optimization Platform
 
-InferLite is a research-grade platform designed for LLM optimization engineers. It provides comprehensive tools for quantization research, runtime benchmarking, KV cache optimization, speculative decoding, and hardware-aware deployment.
+**An open-source platform for LLM inference, quantization, and distributed serving.**
 
-## 🎯 Comprehensive Test Results (Llama-3-8B)
+InferLite is a comprehensive platform designed for LLM optimization engineers, providing tools for quantization research, runtime benchmarking, KV cache optimization, speculative decoding, and hardware-aware deployment recommendations.
 
-All tests were run in simulation mode, validated against published research. Results are for Llama-3-8B.
+## 🎯 Key Features & Results (Llama-3-8B)
+
+All tests were run in simulation mode, validated against published research.
 
 ---
 
-## 🔥 Key Features (Job & Paper Ready!)
-
-### 1. Quantization Research Suite (Highest Priority)
-Compare all major quantization methods with publishable results!
+### 1. Quantization Research Suite
+Compare all major quantization methods:
 
 | Method | Compression | Memory (GB) | Perplexity | Accuracy Drop | Throughput (TPS) |
 |--------|-------------|-------------|------------|---------------|------------------|
@@ -28,16 +27,16 @@ Compare all major quantization methods with publishable results!
 | GGUF_Q4_K_M | 4.5x | 3.6 | 8.80 | 2.0% | 88.0 |
 
 **Key Findings**:
-- **GGUF Q4_K_M**: Best throughput, 4.5x compression, 2.0% accuracy drop
-- **AWQ**: Best overall balance, 3.9x compression, only 1.2% accuracy drop
-- **Memory savings**: Up to 4.5x (from 16GB to 3.6GB)
-- **Throughput improvement**: Up to 2.2x (from 40 TPS to 88 TPS)
-- **Pareto-optimal methods**: FP16, AWQ, GGUF Q4_K_M
+- GGUF Q4_K_M: Best throughput, 4.5x compression, 2.0% accuracy drop
+- AWQ: Best overall balance, 3.9x compression, only 1.2% accuracy drop
+- Memory savings: Up to 4.5x (from 16GB to 3.6GB)
+- Throughput improvement: Up to 2.2x (from 40 TPS to 88 TPS)
+- Pareto-optimal methods: FP16, AWQ, GGUF Q4_K_M
 
 ---
 
 ### 2. Runtime Benchmark Lab
-Compare leading inference runtimes!
+Compare leading inference runtimes:
 
 | Runtime | TTFT (ms) | TPS | Avg Latency (ms) | P95 Latency (ms) | Memory (GB) |
 |---------|-----------|-----|------------------|------------------|-------------|
@@ -47,15 +46,15 @@ Compare leading inference runtimes!
 | LLAMA_CPP | 60.0 | 70.0 | 200.0 | 260.0 | 3.8 |
 
 **Key Findings**:
-- **TensorRT-LLM**: Highest throughput (150 TPS)
-- **llama.cpp**: Lowest TTFT (60 ms, perfect for interactive apps)
-- **vLLM**: Best overall balance of speed and memory
-- **Throughput improvement**: Up to 3.75x (from 40 TPS baseline to 150 TPS)
+- TensorRT-LLM: Highest throughput (150 TPS)
+- llama.cpp: Lowest TTFT (60 ms, perfect for interactive apps)
+- vLLM: Best overall balance of speed and memory
+- Throughput improvement: Up to 3.75x (from 40 TPS baseline to 150 TPS)
 
 ---
 
-### 3. KV Cache Research
-4 KV cache strategies, tested at 4096 context length!
+### 3. KV Cache Optimization
+4 KV cache strategies, tested at 4096 context length:
 
 | Strategy | Memory (GB) | Avg Latency (ms) | Cache Hit Rate | Throughput (TPS) |
 |----------|-------------|------------------|----------------|------------------|
@@ -65,15 +64,15 @@ Compare leading inference runtimes!
 | DYNAMIC | 2.0 | 100.0 | 0.32 | 1000.0 |
 
 **Key Findings**:
-- **Sliding Window**: 2.5x memory savings compared to Dynamic Cache
-- **Paged Attention**: Great balance (used by vLLM)
-- **Memory increases linearly** with context length
-- **Latency increases 30%** from 1024 to 32768 context length
+- Sliding Window: 2.5x memory savings compared to Dynamic Cache
+- Paged Attention: Great balance (used by vLLM)
+- Memory increases linearly with context length
+- Latency increases 30% from 1024 to 32768 context length
 
 ---
 
-### 4. Speculative Decoding Engine
-TinyLlama draft model + Llama-3-8B target model!
+### 4. Speculative Decoding
+TinyLlama draft model + Llama-3-8B target model:
 
 | Metric | Value |
 |--------|-------|
@@ -86,14 +85,14 @@ TinyLlama draft model + Llama-3-8B target model!
 | Avg Latency (baseline) | 250 ms |
 
 **Key Findings**:
-- **Massive speedup**: ~4.5x faster than baseline
-- **Cost reduction**: ~77% lower inference costs
-- **Perfect for interactive apps**: Low latency + high throughput
+- Massive speedup: ~4.5x faster than baseline
+- Cost reduction: ~77% lower inference costs
+- Perfect for interactive apps: Low latency + high throughput
 
 ---
 
 ### 5. Hardware-Aware Advisor
-Recommendations for common GPUs!
+Recommendations for common GPUs:
 
 | GPU | Recommended Runtime | Recommended Quantization | Batch Size | Expected Latency (ms) | Expected Throughput (TPS) | Expected Memory (GB) |
 |-----|---------------------|--------------------------|------------|-----------------------|---------------------------|----------------------|
@@ -109,8 +108,17 @@ Recommendations for common GPUs!
 - **Serving Simulator**: Discrete-event simulation for capacity planning
 - **Energy Intelligence**: Real-time GPU telemetry and carbon footprint estimation
 - **ONNX Lab**: Model graph optimization
-- **Research Reports**: Automated Markdown generation for experiments
+- **Automated Reports**: Markdown report generation for experiments
 - **Backward Compatibility**: Supports old and new API endpoints
+
+---
+
+## 💡 Use Cases
+1. **Model Optimization**: Choose optimal quantization and runtime for your model
+2. **Capacity Planning**: Use the serving simulator to plan your deployment infrastructure
+3. **Cost Reduction**: Use speculative decoding and quantization to lower inference costs
+4. **Hardware Selection**: Use the hardware-aware advisor to select the right GPU and configuration
+5. **Performance Tuning**: Experiment with KV cache strategies to reduce latency and memory usage
 
 ---
 
@@ -137,42 +145,40 @@ The API will be available at `http://127.0.0.1:8000`. Explore the interactive do
 
 ---
 
-## 📚 For Job Applications
-
-1. **Quantization Study**: Use the Quantization Research Suite to generate a comparison of methods for Llama-3-8B
-2. **Runtime Benchmark**: Compare vLLM, TensorRT-LLM, and llama.cpp
-3. **KV Cache Analysis**: Show how context length affects memory and latency
-4. **Hardware Advisor**: Demonstrate optimal deployment for different GPUs
-5. **Write a Report**: Use the built-in report generation for a professional summary
-
----
-
-## 📝 For Research Papers
-
-### Suggested Paper Title
-**InferLite: A Hardware-Aware Framework for Automated Runtime and Quantization Selection in Large Language Model Deployment**
-
-### Research Questions
-1. How do modern quantization methods affect latency, throughput, and model quality?
-2. Which inference runtime provides the best performance across hardware classes?
-3. Can automated configuration search identify Pareto-optimal deployment strategies?
-4. What are the trade-offs between cost, memory consumption, and accuracy in production LLM serving?
-
-### Suitable Venues
-- MLSys
-- ICLR (Workshop Track)
-- IEEE Journal on Emerging Topics in Computing
-- NeurIPS (Workshop Track)
-
----
-
 ## 🏗️ Architecture
-- **FastAPI**: High-performance async API gateway
-- **SQLAlchemy**: Database abstraction (SQLite/PostgreSQL)
-- **Pydantic**: Type-safe data models
-- **Uvicorn**: ASGI server
+
+### High-Level Overview
+```
+┌─────────────────────────────────────────────────────────┐
+│                      API Layer                          │
+│  (FastAPI, Uvicorn, Pydantic)                          │
+└─────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┴───────────────────┐
+        │                                       │
+        ▼                                       ▼
+┌─────────────────────┐              ┌─────────────────────┐
+│  Services Layer     │              │  Storage Layer      │
+│  (Quantization,     │              │  (SQLAlchemy,       │
+│   Runtime Benchmark,│              │   SQLite/PostgreSQL) │
+│   KV Cache, etc.)   │              └─────────────────────┘
+└─────────────────────┘
+        │
+        ▼
+┌─────────────────────┐
+│  Data Models Layer  │
+└─────────────────────┘
+```
+
+### Core Components
+1. **API Layer**: FastAPI-based RESTful API with interactive docs (Swagger UI)
+2. **Services Layer**: Business logic for all key features (quantization, benchmarking, etc.)
+3. **Storage Layer**: SQLAlchemy for data persistence
+4. **Data Models Layer**: Pydantic for type-safe data validation
+5. **ASGI Server**: Uvicorn for high-performance async serving
 
 ---
 
 ## 📄 License
 Apache License 2.0
+
