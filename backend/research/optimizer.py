@@ -317,6 +317,7 @@ def run_strategy(
     records: List[ExperimentRecord] = []
     seen = set()
     for cand in chosen:
+        print(f"[search {name}] {cand.key}", flush=True)
         rec = evaluate(cand)
         records.append(rec)
         seen.add(cand.key)
@@ -328,6 +329,7 @@ def run_strategy(
             measured_now = [r for r in records if r.status == Status.MEASURED]
             order = inferlite_order(remaining, measured_now, rng)
             nxt = order[0] if order else remaining[0]
+            print(f"[search {name}] {nxt.key}", flush=True)
             records.append(evaluate(nxt))
             seen.add(nxt.key)
             remaining = [c for c in remaining if c.key not in seen]

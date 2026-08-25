@@ -54,7 +54,7 @@ More detail: [`docs/architecture/system_overview.md`](docs/architecture/system_o
 
 ## Experimental results
 
-Four **measured** studies are published. The Colab T4 search vs baselines cell has not been published yet — do not copy Mac GPT-2 hypervolume into a T4 table.
+Four **measured** studies are published. T4 search vs baselines is the next Colab cell: 4 TinyLlama configs (fp16/INT4 × context 32/64), budget 2, measurement cache. Do not copy Mac GPT-2 hypervolume into a T4 table.
 
 | Study | Model | Device | Artifacts |
 |-------|-------|--------|-----------|
@@ -62,7 +62,7 @@ Four **measured** studies are published. The Colab T4 search vs baselines cell h
 | T4 lite (Hugging Face) | TinyLlama 1.1B | Colab Tesla T4 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
 | T4 llama.cpp | TinyLlama 1.1B Q4_K_M | Colab Tesla T4 | [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/) |
 | Search vs baselines | GPT-2 | MacBook MPS | [`docs/results/optimizer_macbook/`](docs/results/optimizer_macbook/) |
-| Search vs baselines | TinyLlama 1.1B | Colab T4 | Not published — run `notebooks/inferlite_colab.ipynb` → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
+| Search vs baselines | TinyLlama 1.1B | Colab T4 | **Next:** clean runtime, skip lite/GGUF, run search cells → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
 
 Llama-3, Mistral, and Qwen 7B+ were not timed. TinyLlama is the Llama-family model that fits a free T4.
 

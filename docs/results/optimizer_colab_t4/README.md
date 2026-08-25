@@ -1,10 +1,10 @@
 # Colab Tesla T4 search study (TinyLlama 1.1B)
 
-After a Colab **RAM crash**, do not re-run the lite suite and search in one session. Delete the runtime, run setup cells, then search only (`configs/optimizer_colab_t4.yaml` is two unique TinyLlama loads).
+**Not published yet.** Fill from notebook stdout after a **clean** T4 runtime (skip lite + GGUF; those are already in `colab_t4_lite/` and `colab_t4_gguf/`).
 
 - Config: `configs/optimizer_colab_t4.yaml`
-- Space: fp16 / INT4, context 32, 8 new tokens (**2 unique loads**; strategies share a cache)
-- InferLite / random budget: 2
+- Space: fp16 / INT4 × context 32 / 64 × 8 new tokens (**4 unique loads**; strategies share a cache)
+- InferLite / random budget: 2 vs grid 4
 - Do not paste Mac GPT-2 search numbers here
 
-After the Colab run, save `experiments.csv`, `search_study.json` comparison, ablation, and `figures/` from `/content/llm-inferlite/backend/results/optimizer_colab_t4/`.
+After the Colab run, paste the printed `comparison` JSON and grid rows. Engine CSV lives at `/content/llm-inferlite/backend/results/optimizer_colab_t4/`.

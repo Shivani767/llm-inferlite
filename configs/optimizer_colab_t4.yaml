@@ -5,11 +5,12 @@ warmup_runs: 0
 measure_runs: 1
 budget: 2
 results_dir: results/optimizer_colab_t4
-# Two unique loads only (fp16 + INT4). Strategies share a measurement cache so
-# grid/random/heuristic/InferLite do not reload TinyLlama 12+ times (that OOMs Colab RAM).
+# 4 unique loads (fp16/INT4 × context 32/64). Strategies share a cache so
+# grid/random/heuristic/InferLite do not reload TinyLlama per strategy.
+# Run on a clean T4 runtime: skip lite suite and GGUF (those are already published).
 search_space:
   methods: [fp16, int4_bnb]
-  context_tokens: [32]
+  context_tokens: [32, 64]
   max_new_tokens: [8]
   batch_sizes: [1]
   skip_unsupported: true
