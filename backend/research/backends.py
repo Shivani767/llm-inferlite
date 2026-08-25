@@ -34,6 +34,12 @@ class LoadedModel:
             import torch
 
             if impl is not None:
+                closer = getattr(impl, "close", None)
+                if callable(closer):
+                    try:
+                        closer()
+                    except Exception:
+                        pass
                 try:
                     impl.to("cpu")
                 except Exception:
@@ -334,7 +340,7 @@ def load_gguf(
     model_id: str,
     *,
     gguf_file: Optional[str] = None,
-    n_ctx: int = 2048,
+    n_ctx: int = 512,
     n_gpu_layers: Optional[int] = None,
     **kwargs: Any,
 ) -> LoadedModel:
@@ -343,8 +349,18 @@ def load_gguf(
 
     t0 = time.perf_counter()
     device = select_device()
+    gpu_compiled = None
+    try:
+        from llama_cpp import llama_supports_gpu_offload
+
+        gpu_compiled = bool(llama_supports_gpu_offload())
+    except Exception:
+        gpu_compiled = None
     if n_gpu_layers is None:
-        n_gpu_layers = -1 if device == "cuda" else 0
+        if device == "cuda" and gpu_compiled is not False:
+            n_gpu_layers = -1
+        else:
+            n_gpu_layers = 0
 
     path = kwargs.get("model_path")
     if path is None:
@@ -365,10 +381,16 @@ def load_gguf(
         backend="llama.cpp",
         method="gguf",
         model_id=model_id,
-        device=device,
-        precision=kwargs.get("precision", "gguf"),
+        device=device if n_gpu_layers != 0 else "cpu",
+        precision=kwargs.get("precision", "gguf_q4_k_m"),
         load_time_s=load_time,
-        extras={"path": path, "n_gpu_layers": n_gpu_layers, "n_ctx": n_ctx},
+        extras={
+            "path": path,
+            "n_gpu_layers": n_gpu_layers,
+            "n_ctx": n_ctx,
+            "gpu_offload_compiled": gpu_compiled,
+            "llama_cpp_version": getattr(__import__("llama_cpp"), "__version__", None),
+        },
         _impl=llm,
     )
 
@@ -389,7 +411,8 @@ def generate_gguf(
     t0 = time.perf_counter()
     first = True
     last_t = t0
-    completion_tokens = 0
+    usage_completion = None
+    usage_prompt = None
 
     for chunk in llm(
         prompt,
@@ -407,14 +430,31 @@ def generate_gguf(
             inter_token.append((now - last_t) * 1000.0)
         last_t = now
         tokens_out.append(piece)
-        completion_tokens += 1
+        usage = chunk.get("usage") or {}
+        if usage.get("completion_tokens") is not None:
+            usage_completion = int(usage["completion_tokens"])
+        if usage.get("prompt_tokens") is not None:
+            usage_prompt = int(usage["prompt_tokens"])
+
+    text = "".join(tokens_out)
+    prompt_tokens = usage_prompt
+    if prompt_tokens is None:
+        try:
+            prompt_tokens = len(llm.tokenize(prompt.encode("utf-8"), add_bos=True))
+        except Exception:
+            prompt_tokens = 0
+    completion_tokens = usage_completion
+    if completion_tokens is None:
+        try:
+            completion_tokens = len(llm.tokenize(text.encode("utf-8"), add_bos=False))
+        except Exception:
+            completion_tokens = len([p for p in tokens_out if p])
 
     e2e_ms = (time.perf_counter() - t0) * 1000.0
     tps = (completion_tokens / (e2e_ms / 1000.0)) if e2e_ms > 0 and completion_tokens else None
-    # llama.cpp streaming yields pieces; usage is more reliable when present
     return GenerationSample(
-        prompt_tokens=0,
-        completion_tokens=completion_tokens,
+        prompt_tokens=int(prompt_tokens or 0),
+        completion_tokens=int(completion_tokens or 0),
         ttft_ms=ttft_ms,
         e2e_ms=e2e_ms,
         inter_token_ms=inter_token,

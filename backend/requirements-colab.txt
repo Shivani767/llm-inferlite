@@ -15,5 +15,5 @@ protobuf
 # Optional (large / may fail to build). Leave commented unless you need them:
 # auto-gptq
 # autoawq
-# llama-cpp-python
+# llama-cpp-python is installed from a prebuilt wheel in the GGUF notebook cell, not here.
 # vllm

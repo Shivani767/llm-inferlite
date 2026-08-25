@@ -69,7 +69,11 @@ def run_config(
                     measure_runs=int(spec.get("measure_runs", runs)),
                     seed=seed,
                     environment=env,
-                    **{k: v for k, v in spec.items() if k in {"gguf_file", "filename", "model_path", "quantized_model_id"}},
+                    **{
+                        k: v
+                        for k, v in {**config, **spec}.items()
+                        if k in {"gguf_file", "filename", "model_path", "quantized_model_id", "n_ctx", "n_gpu_layers"}
+                    },
                 )
             )
         elif kind in {"quantization", "quantize"}:

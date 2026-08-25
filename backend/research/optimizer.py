@@ -228,9 +228,22 @@ def make_eval_fn(
     def _eval(cand: Candidate) -> ExperimentRecord:
         prompt = prompt_for_tokens(cand.context_tokens, tokenizer=tokenizer)
         loaded = cache.get(cand.method)
+        method = cand.method
+        backend = "transformers"
+        mid = model_id
+        extra_kw: Dict[str, Any] = {}
+        if method.lower() in {"gguf", "gguf_q4_k_m", "llama.cpp"}:
+            backend = "llama.cpp"
+            mid = extra_load.get("gguf_repo") or model_id
+            extra_kw["gguf_file"] = extra_load.get("gguf_file")
+            extra_kw["filename"] = extra_load.get("gguf_file") or extra_load.get("filename")
+            extra_kw["n_ctx"] = int(
+                extra_load.get("n_ctx") or max(256, cand.context_tokens + cand.max_new_tokens + 32)
+            )
         rec = run_benchmark(
-            model_id=model_id,
-            method=cand.method,
+            model_id=mid,
+            method=method,
+            backend=backend,
             prompt=prompt,
             max_new_tokens=cand.max_new_tokens,
             warmup_runs=warmup_runs,
@@ -247,6 +260,7 @@ def make_eval_fn(
                 "workload": cand.workload,
                 "candidate_key": cand.key,
             },
+            **extra_kw,
         )
         rec.config = {**(rec.config or {}), **cand.as_dict()}
         rec.notes = list(rec.notes or [])
@@ -403,6 +417,10 @@ def run_search_study(config: Dict[str, Any], *, evaluate: Optional[EvalFn] = Non
             extra_load={
                 "model": config.get("_model"),
                 "tokenizer": config.get("_tokenizer"),
+                "gguf_repo": config.get("gguf_repo"),
+                "gguf_file": config.get("gguf_file"),
+                "filename": config.get("gguf_file"),
+                "n_ctx": config.get("n_ctx"),
             },
         )
     return compare_strategies(
