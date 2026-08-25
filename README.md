@@ -2,11 +2,16 @@
 
 Wall-clock LLM inference measurements on the hardware you have — a MacBook (Apple MPS) and free Colab GPUs. Methods that cannot run are recorded as **unsupported** with a reason. Metrics are left empty. Nothing is simulated.
 
-This page reports one completed run: **GPT-2 / DistilGPT-2**, Apple Silicon **MPS**, 2026-08-25. It is not a Llama-3-8B or TensorRT-LLM result.
+This page reports two completed runs. They are different models and devices. Do not stack the tables.
 
-**measured** — timed on this machine · **unsupported** — did not run; not scored · **error** — attempted and failed
+| Study | Model | Device | Date | Artifacts |
+|-------|-------|--------|------|-----------|
+| MacBook MPS | GPT-2 / DistilGPT-2 | Apple Silicon MPS | 2026-08-25 | [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/) |
+| Colab T4 lite | TinyLlama 1.1B Chat | Tesla T4 CUDA | 2026-08-25 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
 
-Artifacts: [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/)
+**measured** — timed on that machine · **unsupported** — did not run; not scored · **error** — attempted and failed
+
+Colab notebook: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb)
 
 ---
 
@@ -20,7 +25,7 @@ Each timed generation uses a prefill/decode loop:
 - **Inter-token latency** — each later decode step
 - **Tokens/s** — completion tokens / end-to-end wall time
 - **P50 / P95 / P99** — percentiles over measured runs
-- **Memory** — process RSS on MPS (no CUDA allocator API)
+- **Memory** — process RSS on MPS; CUDA `max_allocated` on T4
 - **Load time** — `from_pretrained` through a ready model
 
 Decode is greedy (`temperature=0`), seed 42, warmup discarded, then N timed runs. Environment (OS, CPU, PyTorch, MPS/CUDA, package versions) is stored with every record.
@@ -29,7 +34,7 @@ Pareto uses **measured** rows only: minimize P95 latency and RSS, maximize token
 
 ---
 
-## Setup (this run)
+## Setup (MacBook MPS run)
 
 | | |
 |--|--|
@@ -50,7 +55,7 @@ python -m research suite --config ../configs/macbook_cpu.yaml
 
 ---
 
-## Results
+## Results (MacBook MPS / GPT-2)
 
 **29 records: 19 measured, 10 unsupported, 0 errors.**
 
@@ -115,11 +120,59 @@ FP32 (lowest RSS), FP16 (better tok/s and P95), and sliding-window @ 64 (highest
 
 ---
 
+## Colab Tesla T4 / TinyLlama 1.1B
+
+Lite quantization pass only (`configs/colab_t4_lite.yaml`). 16 new tokens, 1 warmup, 2 timed runs. Install **only** `backend/requirements-colab.txt` — never `requirements.txt` on Colab (it reinstalls Torch/ONNX and fills the disk).
+
+| | |
+|--|--|
+| Config | `configs/colab_t4_lite.yaml` |
+| Model | `TinyLlama/TinyLlama-1.1B-Chat-v1.0` |
+| Device | Tesla T4 (14.9 GB), CUDA, Google Colab |
+| Prompt | `"The future of efficient language model inference is"` |
+| New tokens | 16 |
+| Warmup / repeats | 1 / 2 |
+| Notebook | [inferlite_colab.ipynb](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) |
+
+**8 records: 4 measured, 4 unsupported, 0 errors.**
+
+The engine JSON stayed on the Colab VM. The two rows below are copied from the notebook's Pareto stdout. INT8 is measured but not on that front.
+
+### Precision (cite these)
+
+On this T4, **FP16 is the throughput/latency win**. INT4 (bitsandbytes NF4) is the **memory** win: GPU footprint 2108 → 803 MB, at about **0.44×** FP16 tok/s.
+
+| Method | Status | tok/s | P95 e2e (ms) | GPU mem (MB) | Notes |
+|--------|--------|------:|-------------:|-------------:|-------|
+| FP16 | measured | 35.0 | 468 | 2108 | Pareto (speed) |
+| INT4 NF4 (bitsandbytes) | measured | 15.3 | 1057 | 803 | Pareto (memory) |
+| INT8 (bitsandbytes) | measured | ~3 | ~5400 | dominated | From the published bar chart, not engine CSV. `MatMul8bitLt` cast bfloat16→float16. |
+| AWQ | unsupported | — | — | — | `autoawq` not installed |
+| GPTQ | not scored as GPTQ | — | — | — | Run loaded **dense** TinyLlama; no GPTQ checkpoint was configured |
+| GGUF Q4_K_M | unsupported | — | — | — | `llama_cpp` not installed |
+| SmoothQuant / SqueezeLLM | unsupported | — | — | — | not implemented |
+
+INT8 on this T4 is a **slowdown**, not a compression win. GPTQ clocks from that session are omitted on purpose.
+
+![FP16 vs INT8 vs INT4 throughput and P95](docs/results/colab_t4_lite/figures/quantization_comparison.png)
+
+![Unsupported methods (not scored)](docs/results/colab_t4_lite/figures/unsupported_experiments.png)
+
+### Pareto (measured rows only)
+
+FP16 (highest tok/s) and INT4 (lowest GPU memory). INT8 sits below both. The plot also shows a `gptq` point near FP16's memory; treat it as a dense-load artifact, not GPTQ.
+
+![Throughput–memory Pareto](docs/results/colab_t4_lite/figures/pareto_throughput_memory.png)
+
+KV / speculative / batching were **not** in this lite pass. Use `configs/colab_t4.yaml` only after the lite suite fits on disk.
+
+---
+
 ## Reading the numbers
 
-On this MacBook, the working dense path is **Hugging Face + MPS**, and **FP16 is the measured win over FP32**. Kernel quantization and vLLM did not execute, so they have no TPS here. Speculative decoding showed that **acceptance rate ≠ speedup** when the verify path is unfused. KV cache vs recompute behaves as expected; do not cite sliding-window from this suite as production PagedAttention.
+On this MacBook, the working dense path is **Hugging Face + MPS**, and **FP16 is the measured win over FP32**. Kernel quantization and vLLM did not execute, so they have no TPS there. Speculative decoding showed that **acceptance rate ≠ speedup** when the verify path is unfused. KV cache vs recompute behaves as expected; do not cite sliding-window from that suite as production PagedAttention.
 
-CUDA / Colab (TinyLlama): `notebooks/inferlite_colab.ipynb` with `configs/colab_t4_lite.yaml`. Install **only** `backend/requirements-colab.txt` — never `requirements.txt` on Colab (it reinstalls Torch/ONNX and fills the disk). After a crash: Runtime → Disconnect and delete runtime. Optional GGUF on Mac: `pip install llama-cpp-python` and set `gguf_repo` / `gguf_file`. Do not mix Colab T4 numbers with this MPS table without labeling both environments.
+On the Colab T4, **FP16 beats bitsandbytes INT8 and INT4 on tok/s and P95**; INT4 is the measured memory reduction. Do not mix TinyLlama/T4 numbers with GPT-2/MPS numbers. After a Colab disk crash: Runtime → Disconnect and delete runtime. Optional GGUF on Mac: `pip install llama-cpp-python` and set `gguf_repo` / `gguf_file`.
 
 ---
 
@@ -139,9 +192,9 @@ cd backend && python -m pytest   # in-memory tiny GPT-2, no Hub download
 
 ---
 
-## Limits of this run
+## Limits of these runs
 
-MPS memory is RSS. Dynamic INT8 failed on this PyTorch build. Sliding-window is truncation. Continuous batching and speculative decode are research loops, not vLLM/TRT-LLM. AWQ/GPTQ conversion is not a calibrator here. MMLU / GSM8K / HumanEval were not run and are not invented.
+MPS memory is RSS. Dynamic INT8 failed on that Mac PyTorch build. Sliding-window is truncation. Continuous batching and speculative decode are research loops, not vLLM/TRT-LLM. AWQ/GPTQ conversion is not a calibrator here. The Colab GPTQ bar was a dense TinyLlama load and is not cited. MMLU / GSM8K / HumanEval were not run and are not invented.
 
 ```
 @software{inferlite2026,

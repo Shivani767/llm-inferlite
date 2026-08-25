@@ -1,0 +1,56 @@
+{
+  "name": "colab_t4_lite",
+  "date_utc": "2026-08-25",
+  "config": "configs/colab_t4_lite.yaml",
+  "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "device": "cuda",
+  "gpu": {
+    "name": "Tesla T4",
+    "total_memory_mb": 14912.69,
+    "multi_processor_count": 40,
+    "major": 7,
+    "minor": 5
+  },
+  "host": "Google Colab",
+  "prompt": "The future of efficient language model inference is",
+  "max_new_tokens": 16,
+  "warmup_runs": 1,
+  "measure_runs": 2,
+  "counts": {"measured": 4, "unsupported": 4, "error": 0},
+  "source": "notebook stdout from notebooks/inferlite_colab.ipynb saved via Colab on 2026-08-25; engine JSON remained on the Colab VM",
+  "exact_from_stdout": {
+    "fp16": {
+      "experiment_id": "2026-08-25T171238Z_fp16_2840abf2",
+      "status": "measured",
+      "tokens_per_sec": 34.97482779291871,
+      "p95_latency_ms": 467.91840940009024,
+      "memory_mb": 2107.525
+    },
+    "int4_bnb": {
+      "experiment_id": "2026-08-25T171320Z_int4_bnb_eaa6c99f",
+      "status": "measured",
+      "tokens_per_sec": 15.306499972242793,
+      "p95_latency_ms": 1056.689870799778,
+      "memory_mb": 802.726
+    }
+  },
+  "figure_derived_not_engine_csv": {
+    "int8_bnb": {
+      "status": "measured",
+      "tokens_per_sec_approx": 3.0,
+      "p95_latency_ms_approx": 5400,
+      "note": "Dominated on the Pareto plot. bitsandbytes logged MatMul8bitLt casts from bfloat16 to float16."
+    },
+    "gptq": {
+      "status": "measured_but_invalid_as_gptq",
+      "note": "Loaded dense TinyLlama/TinyLlama-1.1B-Chat-v1.0 because gptq_model_id was unset. Clocks are not GPTQ."
+    }
+  },
+  "unsupported": [
+    {"method": "awq", "reason": "autoawq not available: No module named 'autoawq'"},
+    {"method": "gguf_q4_k_m", "reason": "llama_cpp not available: No module named 'llama_cpp'"},
+    {"method": "smooth_quant", "reason": "SmoothQuant is not wired: needs a dedicated calibration toolkit not bundled here"},
+    {"method": "squeeze_llm", "reason": "SqueezeLLM is not bundled; no silent fallback numbers are produced"}
+  ],
+  "pareto_methods": ["fp16", "int4_bnb"]
+}

@@ -171,7 +171,12 @@ def load_transformers(
         device = "cuda"
         precision = "int4_nf4"
     elif method == "gptq":
-        gptq_id = kwargs.get("quantized_model_id") or model_id
+        gptq_id = kwargs.get("quantized_model_id")
+        if not gptq_id:
+            raise ValueError(
+                "GPTQ is not timed unless gptq_model_id points at a GPTQ checkpoint; "
+                "refusing to load dense Hugging Face weights and label them GPTQ"
+            )
         model = AutoModelForCausalLM.from_pretrained(
             gptq_id,
             device_map="auto",
