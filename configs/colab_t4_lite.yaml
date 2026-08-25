@@ -1,0 +1,20 @@
+name: colab_t4_lite
+seed: 42
+model_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+prompt: "The future of efficient language model inference is"
+max_new_tokens: 16
+warmup_runs: 1
+measure_runs: 2
+results_dir: results/colab_t4_lite
+# First pass: methods that fit a free T4 without extra multi-GB downloads.
+experiments:
+  - type: quantization
+    methods:
+      - fp16
+      - int8_bnb
+      - int4_bnb
+      - awq
+      - gptq
+      - gguf_q4_k_m
+      - smooth_quant
+      - squeeze_llm

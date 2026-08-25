@@ -119,7 +119,7 @@ FP32 (lowest RSS), FP16 (better tok/s and P95), and sliding-window @ 64 (highest
 
 On this MacBook, the working dense path is **Hugging Face + MPS**, and **FP16 is the measured win over FP32**. Kernel quantization and vLLM did not execute, so they have no TPS here. Speculative decoding showed that **acceptance rate ≠ speedup** when the verify path is unfused. KV cache vs recompute behaves as expected; do not cite sliding-window from this suite as production PagedAttention.
 
-CUDA / Colab (TinyLlama): `notebooks/inferlite_colab.ipynb` and `configs/colab_t4.yaml`. Optional GGUF on Mac: `pip install llama-cpp-python` and set `gguf_repo` / `gguf_file`. Do not mix Colab T4 numbers with this MPS table without labeling both environments.
+CUDA / Colab (TinyLlama): `notebooks/inferlite_colab.ipynb` with `configs/colab_t4_lite.yaml`. Install **only** `backend/requirements-colab.txt` — never `requirements.txt` on Colab (it reinstalls Torch/ONNX and fills the disk). After a crash: Runtime → Disconnect and delete runtime. Optional GGUF on Mac: `pip install llama-cpp-python` and set `gguf_repo` / `gguf_file`. Do not mix Colab T4 numbers with this MPS table without labeling both environments.
 
 ---
 

@@ -1,8 +1,18 @@
-# Extra packages for free Colab GPUs (T4). Install after the core requirements.
+# Colab T4 only. Do NOT also install backend/requirements.txt — that reinstalls
+# torch/onnx and fills the free Colab disk until the session crashes.
+pyyaml>=6.0.1
+click>=8.1.7
+psutil>=5.9.0
+matplotlib>=3.8.0
+pandas>=2.2.0
+accelerate>=0.31.0
+safetensors>=0.4.3
+huggingface_hub>=0.23.0
+transformers>=4.42.0
 bitsandbytes
 sentencepiece
 protobuf
-# Optional; only if the Colab runtime can build them:
+# Optional (large / may fail to build). Leave commented unless you need them:
 # auto-gptq
 # autoawq
 # llama-cpp-python
