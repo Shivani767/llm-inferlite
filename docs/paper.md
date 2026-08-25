@@ -88,7 +88,7 @@ n=8 is small and search ranking is seed-sensitive. MPS RSS is not CUDA `max_memo
 
 ## Conclusion
 
-InferLite’s contribution is an honest measurement-and-search loop: probe, time, Pareto, compare search strategies, ablate the surrogate, and refuse fake kernels. On the hardware we have, FP16 is the dense-path win, INT4 is a T4 memory win, and a half-budget surrogate does not beat random on this 8-point MPS space. The next measured step is a larger CUDA space (TinyLlama × batch × context on T4) with the same protocol — still without inventing scores.
+InferLite’s contribution is an honest measurement-and-search loop: probe, time, Pareto, compare search strategies, ablate the surrogate, and refuse fake kernels. On the hardware we have, FP16 is the dense-path win, INT4 is a T4 memory win, and a half-budget surrogate does not beat random on this 8-point MPS space. The next measured step is the T4 search cells in `notebooks/inferlite_colab.ipynb` (`configs/optimizer_colab_t4.yaml`) — still without inventing scores.
 
 ## Reproducibility commands
 

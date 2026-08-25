@@ -61,6 +61,7 @@ Three completed **measured** studies. Different models and devices — do not st
 | Measurement suite | GPT-2 / DistilGPT-2 | MacBook MPS | [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/) |
 | T4 lite | TinyLlama 1.1B | Colab Tesla T4 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
 | Search vs baselines | GPT-2 | MacBook MPS | [`docs/results/optimizer_macbook/`](docs/results/optimizer_macbook/) |
+| Search vs baselines | TinyLlama 1.1B | Colab T4 | Run the search cells in `notebooks/inferlite_colab.ipynb` → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
 
 Llama-3, Mistral, and Qwen 7B+ were not timed. TinyLlama is the Llama-family model that fits a free T4.
 
