@@ -1,0 +1,765 @@
+{
+  "research_question": "Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal LLM inference configurations using substantially fewer measurements than exhaustive search?",
+  "n_search_space": 30,
+  "seeds": [
+    42,
+    123,
+    456,
+    789,
+    1000
+  ],
+  "budgets": [
+    2,
+    4,
+    8,
+    16
+  ],
+  "highlight_budget": 4,
+  "energy": {
+    "supported": true,
+    "backend": "pynvml",
+    "instant_watts": 27.648
+  },
+  "device": "cuda",
+  "comparison": [
+    {
+      "strategy": "grid",
+      "n_evaluated": 30,
+      "n_measured": 30,
+      "hypervolume": 35888.12073834055,
+      "hv_vs_grid": 1.0,
+      "hv_mean": 35888.12073834055,
+      "hv_std": 0.0,
+      "hv_ci95_low": 35888.12073834055,
+      "hv_ci95_high": 35888.12073834055,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "note": "exhaustive wall-clock grid; one measurement per configuration"
+    },
+    {
+      "strategy": "random",
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "hypervolume": 34349.46814423801,
+      "hv_vs_grid": 0.9571264094511711,
+      "hv_mean": 34349.46814423801,
+      "hv_std": 797.3102357445063,
+      "hv_ci95_low": 33359.635439374746,
+      "hv_ci95_high": 35339.30084910127,
+      "hv_vs_grid_mean": 0.9571264094511711,
+      "hv_vs_grid_std": 0.022216550193800234,
+      "hv_vs_grid_ci95_low": 0.9295453412732045,
+      "hv_vs_grid_ci95_high": 0.9847074776291377,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "highlight_budget": 4,
+      "note": "mean \u00b1 95% t-interval over 5 seeds at budget 4"
+    },
+    {
+      "strategy": "heuristic",
+      "n_evaluated": 1,
+      "n_measured": 1,
+      "hypervolume": 6739.893594595186,
+      "hv_vs_grid": 0.18780291238250096,
+      "hv_mean": 6739.893594595186,
+      "hv_std": 0.0,
+      "hv_ci95_low": 6739.893594595186,
+      "hv_ci95_high": 6739.893594595186,
+      "hv_vs_grid_mean": 0.18780291238250096,
+      "hv_vs_grid_std": 0.0,
+      "hv_vs_grid_ci95_low": 0.18780291238250096,
+      "hv_vs_grid_ci95_high": 0.18780291238250096,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "highlight_budget": 4,
+      "note": "mean \u00b1 95% t-interval over 5 seeds at budget 4"
+    },
+    {
+      "strategy": "inferlite",
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "hypervolume": 17600.709667270923,
+      "hv_vs_grid": 0.49043274780524976,
+      "hv_mean": 17600.709667270923,
+      "hv_std": 14459.615143778172,
+      "hv_ci95_low": -350.3955956423015,
+      "hv_ci95_high": 35551.81493018415,
+      "hv_vs_grid_mean": 0.49043274780524976,
+      "hv_vs_grid_std": 0.4029081168446487,
+      "hv_vs_grid_ci95_low": -0.009763553745180176,
+      "hv_vs_grid_ci95_high": 0.9906290493556797,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "highlight_budget": 4,
+      "note": "mean \u00b1 95% t-interval over 5 seeds at budget 4"
+    }
+  ],
+  "sweep": [
+    {
+      "budget": 2,
+      "n_search_space": 30,
+      "grid_hypervolume": 35888.12073834055,
+      "strategies": {
+        "random": {
+          "n_evaluated": 2,
+          "hypervolume": {
+            "n": 5,
+            "mean": 21934.63650663112,
+            "std": 16105.709495631487,
+            "ci95_low": 1939.9628161363034,
+            "ci95_high": 41929.31019712593
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.6111949039225555,
+            "std": 0.44877550465954574,
+            "ci95_low": 0.05405584845973199,
+            "ci95_high": 1.168333959385379
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 34566.69234035814,
+              "hv_vs_grid": 0.963179225582278,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 123,
+              "hypervolume": 7102.189587134867,
+              "hv_vs_grid": 0.19789806323147333,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 456,
+              "hypervolume": 32164.13292205755,
+              "hv_vs_grid": 0.8962334126260189,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 789,
+              "hypervolume": 1778.068259570555,
+              "hv_vs_grid": 0.0495447580700703,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 34062.099424034495,
+              "hv_vs_grid": 0.9491190601029368,
+              "n_evaluated": 2
+            }
+          ]
+        },
+        "heuristic": {
+          "n_evaluated": 1,
+          "hypervolume": {
+            "n": 5,
+            "mean": 6739.893594595186,
+            "std": 0.0,
+            "ci95_low": 6739.893594595186,
+            "ci95_high": 6739.893594595186
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.18780291238250096,
+            "std": 0.0,
+            "ci95_low": 0.18780291238250096,
+            "ci95_high": 0.18780291238250096
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 123,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 456,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 789,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            }
+          ]
+        },
+        "inferlite": {
+          "n_evaluated": 2,
+          "hypervolume": {
+            "n": 5,
+            "mean": 11818.764773299567,
+            "std": 10945.967613409426,
+            "ci95_low": -1770.2702652505614,
+            "ci95_high": 25407.799811849694
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.32932247579832624,
+            "std": 0.3050025297567466,
+            "ci95_low": -0.049327471843888526,
+            "ci95_high": 0.707972423440541
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 7114.215176745592,
+              "hv_vs_grid": 0.19823314875178805,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 123,
+              "hypervolume": 31396.5587578946,
+              "hv_vs_grid": 0.8748454394368035,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 456,
+              "hypervolume": 7114.215176745592,
+              "hv_vs_grid": 0.19823314875178805,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 789,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 2
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 6728.941160516859,
+              "hv_vs_grid": 0.1874977296687506,
+              "n_evaluated": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "budget": 4,
+      "n_search_space": 30,
+      "grid_hypervolume": 35888.12073834055,
+      "strategies": {
+        "random": {
+          "n_evaluated": 4,
+          "hypervolume": {
+            "n": 5,
+            "mean": 34349.46814423801,
+            "std": 797.3102357445063,
+            "ci95_low": 33359.635439374746,
+            "ci95_high": 35339.30084910127
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.9571264094511711,
+            "std": 0.022216550193800234,
+            "ci95_low": 0.9295453412732045,
+            "ci95_high": 0.9847074776291377
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 34632.42834947038,
+              "hv_vs_grid": 0.9650109182917268,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 123,
+              "hypervolume": 33947.72115495753,
+              "hv_vs_grid": 0.9459319812945786,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 456,
+              "hypervolume": 33640.32066687969,
+              "hv_vs_grid": 0.9373664592846888,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 789,
+              "hypervolume": 35616.58227625512,
+              "hv_vs_grid": 0.9924337508763634,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 33910.28827362731,
+              "hv_vs_grid": 0.9448889375084984,
+              "n_evaluated": 4
+            }
+          ]
+        },
+        "heuristic": {
+          "n_evaluated": 1,
+          "hypervolume": {
+            "n": 5,
+            "mean": 6739.893594595186,
+            "std": 0.0,
+            "ci95_low": 6739.893594595186,
+            "ci95_high": 6739.893594595186
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.18780291238250096,
+            "std": 0.0,
+            "ci95_low": 0.18780291238250096,
+            "ci95_high": 0.18780291238250096
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 123,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 456,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 789,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            }
+          ]
+        },
+        "inferlite": {
+          "n_evaluated": 4,
+          "hypervolume": {
+            "n": 5,
+            "mean": 17600.709667270923,
+            "std": 14459.615143778172,
+            "ci95_low": -350.3955956423015,
+            "ci95_high": 35551.81493018415
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.49043274780524976,
+            "std": 0.4029081168446487,
+            "ci95_low": -0.009763553745180176,
+            "ci95_high": 0.9906290493556797
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 7089.641331143862,
+              "hv_vs_grid": 0.19754841393992936,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 123,
+              "hypervolume": 35329.79767130847,
+              "hv_vs_grid": 0.9844426775338058,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 456,
+              "hypervolume": 7089.641331143862,
+              "hv_vs_grid": 0.19754841393992936,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 789,
+              "hypervolume": 31404.826671614574,
+              "hv_vs_grid": 0.8750758196726552,
+              "n_evaluated": 4
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 7089.641331143862,
+              "hv_vs_grid": 0.19754841393992936,
+              "n_evaluated": 4
+            }
+          ]
+        }
+      }
+    },
+    {
+      "budget": 8,
+      "n_search_space": 30,
+      "grid_hypervolume": 35888.12073834055,
+      "strategies": {
+        "random": {
+          "n_evaluated": 8,
+          "hypervolume": {
+            "n": 5,
+            "mean": 34710.16217642218,
+            "std": 762.4754489059162,
+            "ci95_low": 33763.57563814999,
+            "ci95_high": 35656.74871469437
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.9671769226784861,
+            "std": 0.021245900682989427,
+            "ci95_low": 0.9408008818382947,
+            "ci95_high": 0.9935529635186775
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 34916.41273093585,
+              "hv_vs_grid": 0.972923965161358,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 123,
+              "hypervolume": 33947.72115495753,
+              "hv_vs_grid": 0.9459319812945786,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 456,
+              "hypervolume": 34644.97660546139,
+              "hv_vs_grid": 0.9653605675832708,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 789,
+              "hypervolume": 35888.12073834055,
+              "hv_vs_grid": 1.0,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 34153.57965241556,
+              "hv_vs_grid": 0.9516680993532236,
+              "n_evaluated": 8
+            }
+          ]
+        },
+        "heuristic": {
+          "n_evaluated": 1,
+          "hypervolume": {
+            "n": 5,
+            "mean": 6739.893594595186,
+            "std": 0.0,
+            "ci95_low": 6739.893594595186,
+            "ci95_high": 6739.893594595186
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.18780291238250096,
+            "std": 0.0,
+            "ci95_low": 0.18780291238250096,
+            "ci95_high": 0.18780291238250096
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 123,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 456,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 789,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            }
+          ]
+        },
+        "inferlite": {
+          "n_evaluated": 8,
+          "hypervolume": {
+            "n": 5,
+            "mean": 34830.98542517757,
+            "std": 1147.1880950450352,
+            "ci95_low": 33406.79162432282,
+            "ci95_high": 36255.17922603232
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.9705435868077202,
+            "std": 0.03196567754018545,
+            "ci95_low": 0.9308593188228204,
+            "ci95_high": 1.0102278547926202
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 35054.103314185304,
+              "hv_vs_grid": 0.976760626998665,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 123,
+              "hypervolume": 35604.03402026412,
+              "hv_vs_grid": 0.9920841015848196,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 456,
+              "hypervolume": 35054.103314185304,
+              "hv_vs_grid": 0.976760626998665,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 789,
+              "hypervolume": 32838.65245698899,
+              "hv_vs_grid": 0.9150284768716321,
+              "n_evaluated": 8
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 35604.03402026412,
+              "hv_vs_grid": 0.9920841015848196,
+              "n_evaluated": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "budget": 16,
+      "n_search_space": 30,
+      "grid_hypervolume": 35888.12073834055,
+      "strategies": {
+        "random": {
+          "n_evaluated": 16,
+          "hypervolume": {
+            "n": 5,
+            "mean": 35522.0563797448,
+            "std": 400.8506431686072,
+            "ci95_low": 35024.41435963043,
+            "ci95_high": 36019.69839985917
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.9897998459918054,
+            "std": 0.011169452033757897,
+            "ci95_low": 0.9759333628805088,
+            "ci95_high": 1.003666329103102
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 35338.19003226174,
+              "hv_vs_grid": 0.9846765254138453,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 123,
+              "hypervolume": 35055.387807708525,
+              "hv_vs_grid": 0.9767964186059376,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 456,
+              "hypervolume": 35993.43729514756,
+              "hv_vs_grid": 1.0029345798732363,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 789,
+              "hypervolume": 35888.12073834055,
+              "hv_vs_grid": 1.0,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 35335.14602526559,
+              "hv_vs_grid": 0.9845917060660075,
+              "n_evaluated": 16
+            }
+          ]
+        },
+        "heuristic": {
+          "n_evaluated": 1,
+          "hypervolume": {
+            "n": 5,
+            "mean": 6739.893594595186,
+            "std": 0.0,
+            "ci95_low": 6739.893594595186,
+            "ci95_high": 6739.893594595186
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.18780291238250096,
+            "std": 0.0,
+            "ci95_low": 0.18780291238250096,
+            "ci95_high": 0.18780291238250096
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 123,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 456,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 789,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 6739.893594595186,
+              "hv_vs_grid": 0.18780291238250096,
+              "n_evaluated": 1
+            }
+          ]
+        },
+        "inferlite": {
+          "n_evaluated": 16,
+          "hypervolume": {
+            "n": 5,
+            "mean": 35697.41366327465,
+            "std": 180.74447609127608,
+            "ci95_low": 35473.02573290842,
+            "ci95_high": 35921.801593640885
+          },
+          "hv_vs_grid": {
+            "n": 5,
+            "mean": 0.9946860668337487,
+            "std": 0.00503633158752112,
+            "ci95_low": 0.9884336377360471,
+            "ci95_high": 1.0009384959314505
+          },
+          "per_seed": [
+            {
+              "seed": 42,
+              "hypervolume": 35616.58227625512,
+              "hv_vs_grid": 0.9924337508763634,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 123,
+              "hypervolume": 35616.58227625512,
+              "hv_vs_grid": 0.9924337508763634,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 456,
+              "hypervolume": 35616.58227625512,
+              "hv_vs_grid": 0.9924337508763634,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 789,
+              "hypervolume": 35616.58227625512,
+              "hv_vs_grid": 0.9924337508763634,
+              "n_evaluated": 16
+            },
+            {
+              "seed": 1000,
+              "hypervolume": 36020.7392113528,
+              "hv_vs_grid": 1.00369533066329,
+              "n_evaluated": 16
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "inferlite_vs_random": [
+    {
+      "budget": 2,
+      "inferlite_hv_vs_grid_mean": 0.32932247579832624,
+      "random_hv_vs_grid_mean": 0.6111949039225555,
+      "inferlite_beats_random_on_mean": false
+    },
+    {
+      "budget": 4,
+      "inferlite_hv_vs_grid_mean": 0.49043274780524976,
+      "random_hv_vs_grid_mean": 0.9571264094511711,
+      "inferlite_beats_random_on_mean": false
+    },
+    {
+      "budget": 8,
+      "inferlite_hv_vs_grid_mean": 0.9705435868077202,
+      "random_hv_vs_grid_mean": 0.9671769226784861,
+      "inferlite_beats_random_on_mean": true
+    },
+    {
+      "budget": 16,
+      "inferlite_hv_vs_grid_mean": 0.9946860668337487,
+      "random_hv_vs_grid_mean": 0.9897998459918054,
+      "inferlite_beats_random_on_mean": true
+    }
+  ],
+  "grid_n": 30,
+  "simulation": false,
+  "replay": true,
+  "note": "Grid is measured once on the wall clock. Random, InferLite, and the heuristic replay those records at each seed\u00d7budget; they do not invent tokens/s or latency. InferLite still chooses sequentially: the surrogate only sees points it has already picked. On this design InferLite uses the ridge model only after three measured points, so budget 2 is a diverse/heuristic seed, not surrogate search."
+}

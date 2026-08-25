@@ -1,0 +1,183 @@
+{
+  "experiment_id": "2026-08-25T200731Z_fp16_84d0cee0",
+  "experiment_type": "search",
+  "status": "measured",
+  "timestamp_utc": "2026-08-25T20:07:32Z",
+  "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "backend": "transformers",
+  "method": "fp16",
+  "device": "cuda",
+  "precision": "fp16",
+  "config": {
+    "prompt": "The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is ",
+    "max_new_tokens": 16,
+    "warmup_runs": 1,
+    "measure_runs": 1,
+    "seed": 42,
+    "context_tokens": 48,
+    "batch_size": 1,
+    "workload": "custom",
+    "candidate_key": "fp16|c48|n16|b1",
+    "method": "fp16",
+    "key": "fp16|c48|n16|b1"
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-25T20:07:31Z",
+    "python": "3.13.15",
+    "executable": "/usr/bin/python3",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.35",
+    "system": "Linux",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "cpu_count_logical": 2,
+    "seed": 42,
+    "git_commit": "00a815b1a185c1a9215bc85a7adfdc0fe21e38aa",
+    "packages": {
+      "torch": "2.11.0+cu128",
+      "transformers": "5.15.0",
+      "accelerate": "1.14.0",
+      "bitsandbytes": "0.50.1",
+      "auto_gptq": null,
+      "autoawq": null,
+      "llama_cpp": null,
+      "vllm": null,
+      "numpy": "2.1.3"
+    },
+    "torch": {
+      "installed": true,
+      "version": "2.11.0+cu128",
+      "cuda_built": true,
+      "cuda_version": "12.8",
+      "mps_built": false,
+      "cuda_available": true,
+      "mps_available": false,
+      "gpu": {
+        "index": 0,
+        "name": "Tesla T4",
+        "total_memory_mb": 14912.69,
+        "multi_processor_count": 40,
+        "major": 7,
+        "minor": 5
+      }
+    },
+    "colab": true,
+    "hf_home": null,
+    "cuda_visible_devices": null,
+    "ram": {
+      "total_mb": 12975.53,
+      "available_mb": 9260.85
+    }
+  },
+  "reason": null,
+  "metrics": {
+    "load_time_s": 25.494676207999873,
+    "ttft_ms": {
+      "n": 1,
+      "mean": 32.784236999987115,
+      "std": 0.0,
+      "min": 32.784236999987115,
+      "p50": 32.784236999987115,
+      "p95": 32.784236999987115,
+      "p99": 32.784236999987115,
+      "max": 32.784236999987115,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "e2e_latency_ms": {
+      "n": 1,
+      "mean": 666.6075159998854,
+      "std": 0.0,
+      "min": 666.6075159998854,
+      "p50": 666.6075159998854,
+      "p95": 666.6075159998854,
+      "p99": 666.6075159998854,
+      "max": 666.6075159998854,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "inter_token_latency_ms": {
+      "n": 15,
+      "mean": 41.784887866667,
+      "std": 6.3986630265879265,
+      "min": 28.648830000065573,
+      "p50": 40.7383019999088,
+      "p95": 52.102890600076535,
+      "p99": 52.99507252012063,
+      "max": 53.21811800013165,
+      "ci95_low": 38.433063197619596,
+      "ci95_high": 45.1367125357144
+    },
+    "tokens_per_sec": {
+      "n": 1,
+      "mean": 24.002129612956164,
+      "std": 0.0,
+      "min": 24.002129612956164,
+      "p50": 24.002129612956164,
+      "p95": 24.002129612956164,
+      "p99": 24.002129612956164,
+      "max": 24.002129612956164,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "prompt_tokens": 50,
+    "completion_tokens_mean": 16.0,
+    "peak_rss_mb": 2811.527,
+    "peak_gpu_allocated_mb": 2111.785,
+    "peak_gpu_reserved_mb": 2148.0,
+    "model_weight_mb": 2098.176,
+    "perplexity": null,
+    "energy_j": null,
+    "extra": {
+      "weight_mb": 2098.176,
+      "backend_extras": {},
+      "memory_end": {
+        "rss_mb": 2811.527,
+        "allocated_mb": 2106.302,
+        "reserved_mb": 2148.0,
+        "max_allocated_mb": 2111.785
+      },
+      "energy_probe": {
+        "supported": true,
+        "backend": "pynvml",
+        "instant_watts": 50.105
+      }
+    }
+  },
+  "samples": [
+    {
+      "prompt_tokens": 50,
+      "completion_tokens": 16,
+      "ttft_ms": 32.784236999987115,
+      "e2e_ms": 666.6075159998854,
+      "inter_token_ms_mean": 41.784887866667,
+      "tokens_per_sec": 24.002129612956164,
+      "text_preview": "\n\nBased on the text material, what are some of the challenges",
+      "memory": {
+        "before": {
+          "rss_mb": 2811.527,
+          "allocated_mb": 2106.303,
+          "reserved_mb": 2148.0,
+          "max_allocated_mb": 2106.303
+        },
+        "after": {
+          "rss_mb": 2811.527,
+          "allocated_mb": 2107.761,
+          "reserved_mb": 2148.0,
+          "max_allocated_mb": 2111.785
+        },
+        "peak": {
+          "rss_mb": 2811.527,
+          "allocated_mb": 2107.761,
+          "reserved_mb": 2148.0,
+          "max_allocated_mb": 2111.785
+        }
+      }
+    }
+  ],
+  "notes": [
+    "All timings are wall-clock on this machine.",
+    "First-token time is prefill latency of the decode loop.",
+    "Discarded 1 warmup run(s) before measurement.",
+    "search: wall-clock measurement"
+  ]
+}

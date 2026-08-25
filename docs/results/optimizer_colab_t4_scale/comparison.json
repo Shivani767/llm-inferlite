@@ -1,0 +1,135 @@
+{
+  "comparison": [
+    {
+      "strategy": "grid",
+      "n_evaluated": 30,
+      "n_measured": 30,
+      "hypervolume": 35888.12073834055,
+      "hv_vs_grid": 1.0,
+      "hv_mean": 35888.12073834055,
+      "hv_std": 0.0,
+      "hv_ci95_low": 35888.12073834055,
+      "hv_ci95_high": 35888.12073834055,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "note": "exhaustive wall-clock grid; one measurement per configuration"
+    },
+    {
+      "strategy": "random",
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "hypervolume": 34349.46814423801,
+      "hv_vs_grid": 0.9571264094511711,
+      "hv_mean": 34349.46814423801,
+      "hv_std": 797.3102357445063,
+      "hv_ci95_low": 33359.635439374746,
+      "hv_ci95_high": 35339.30084910127,
+      "hv_vs_grid_mean": 0.9571264094511711,
+      "hv_vs_grid_std": 0.022216550193800234,
+      "hv_vs_grid_ci95_low": 0.9295453412732045,
+      "hv_vs_grid_ci95_high": 0.9847074776291377,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "highlight_budget": 4,
+      "note": "mean \u00b1 95% t-interval over 5 seeds at budget 4"
+    },
+    {
+      "strategy": "heuristic",
+      "n_evaluated": 1,
+      "n_measured": 1,
+      "hypervolume": 6739.893594595186,
+      "hv_vs_grid": 0.18780291238250096,
+      "hv_mean": 6739.893594595186,
+      "hv_std": 0.0,
+      "hv_ci95_low": 6739.893594595186,
+      "hv_ci95_high": 6739.893594595186,
+      "hv_vs_grid_mean": 0.18780291238250096,
+      "hv_vs_grid_std": 0.0,
+      "hv_vs_grid_ci95_low": 0.18780291238250096,
+      "hv_vs_grid_ci95_high": 0.18780291238250096,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "highlight_budget": 4,
+      "note": "mean \u00b1 95% t-interval over 5 seeds at budget 4"
+    },
+    {
+      "strategy": "inferlite",
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "hypervolume": 17600.709667270923,
+      "hv_vs_grid": 0.49043274780524976,
+      "hv_mean": 17600.709667270923,
+      "hv_std": 14459.615143778172,
+      "hv_ci95_low": -350.3955956423015,
+      "hv_ci95_high": 35551.81493018415,
+      "hv_vs_grid_mean": 0.49043274780524976,
+      "hv_vs_grid_std": 0.4029081168446487,
+      "hv_vs_grid_ci95_low": -0.009763553745180176,
+      "hv_vs_grid_ci95_high": 0.9906290493556797,
+      "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1000
+      ],
+      "highlight_budget": 4,
+      "note": "mean \u00b1 95% t-interval over 5 seeds at budget 4"
+    }
+  ],
+  "inferlite_vs_random": [
+    {
+      "budget": 2,
+      "inferlite_hv_vs_grid_mean": 0.32932247579832624,
+      "random_hv_vs_grid_mean": 0.6111949039225555,
+      "inferlite_beats_random_on_mean": false
+    },
+    {
+      "budget": 4,
+      "inferlite_hv_vs_grid_mean": 0.49043274780524976,
+      "random_hv_vs_grid_mean": 0.9571264094511711,
+      "inferlite_beats_random_on_mean": false
+    },
+    {
+      "budget": 8,
+      "inferlite_hv_vs_grid_mean": 0.9705435868077202,
+      "random_hv_vs_grid_mean": 0.9671769226784861,
+      "inferlite_beats_random_on_mean": true
+    },
+    {
+      "budget": 16,
+      "inferlite_hv_vs_grid_mean": 0.9946860668337487,
+      "random_hv_vs_grid_mean": 0.9897998459918054,
+      "inferlite_beats_random_on_mean": true
+    }
+  ],
+  "seeds": [
+    42,
+    123,
+    456,
+    789,
+    1000
+  ],
+  "budgets": [
+    2,
+    4,
+    8,
+    16
+  ],
+  "n_search_space": 30
+}

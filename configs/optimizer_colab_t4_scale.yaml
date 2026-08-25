@@ -1,0 +1,22 @@
+name: optimizer_colab_t4_scale
+seed: 42
+seeds: [42, 123, 456, 789, 1000]
+budgets: [2, 4, 8, 16]
+model_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+warmup_runs: 1
+measure_runs: 1
+keep_one_method: true
+results_dir: results/optimizer_colab_t4_scale
+# 2 methods × 5 contexts × 3 decode lengths = 30 wall-clock jobs.
+# warmup_runs=1 avoids the cold-start first FP16 row from the n=4 study.
+# keep_one_method=true: load FP16, time all 15 FP16 jobs, close, then INT4.
+# Run on a clean T4 runtime. Do not invent these numbers if this cell did not finish.
+search_space:
+  methods: [fp16, int4_bnb]
+  context_tokens: [32, 48, 64, 96, 128]
+  max_new_tokens: [8, 12, 16]
+  batch_sizes: [1]
+  skip_unsupported: true
+strategies: [grid, random, heuristic, inferlite]
+experiments:
+  - type: search

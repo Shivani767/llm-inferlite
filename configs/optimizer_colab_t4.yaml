@@ -7,7 +7,8 @@ budget: 2
 results_dir: results/optimizer_colab_t4
 # 4 unique loads (fp16/INT4 × context 32/64). Strategies share a cache so
 # grid/random/heuristic/InferLite do not reload TinyLlama per strategy.
-# Run on a clean T4 runtime: skip lite suite and GGUF (those are already published).
+# Historical n=4 pilot (warmup_runs=0, one seed). Scale study:
+# configs/optimizer_colab_t4_scale.yaml (30 configs, 5 seeds) — not measured yet.
 search_space:
   methods: [fp16, int4_bnb]
   context_tokens: [32, 64]

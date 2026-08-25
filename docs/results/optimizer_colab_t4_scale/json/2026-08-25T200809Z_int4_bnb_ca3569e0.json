@@ -1,0 +1,183 @@
+{
+  "experiment_id": "2026-08-25T200809Z_int4_bnb_ca3569e0",
+  "experiment_type": "search",
+  "status": "measured",
+  "timestamp_utc": "2026-08-25T20:08:10Z",
+  "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "backend": "transformers",
+  "method": "int4_bnb",
+  "device": "cuda",
+  "precision": "int4_nf4",
+  "config": {
+    "prompt": "The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is The future of efficient language model inference is ",
+    "max_new_tokens": 8,
+    "warmup_runs": 1,
+    "measure_runs": 1,
+    "seed": 42,
+    "context_tokens": 96,
+    "batch_size": 1,
+    "workload": "custom",
+    "candidate_key": "int4_bnb|c96|n8|b1",
+    "method": "int4_bnb",
+    "key": "int4_bnb|c96|n8|b1"
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-25T20:08:09Z",
+    "python": "3.13.15",
+    "executable": "/usr/bin/python3",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.35",
+    "system": "Linux",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "cpu_count_logical": 2,
+    "seed": 42,
+    "git_commit": "00a815b1a185c1a9215bc85a7adfdc0fe21e38aa",
+    "packages": {
+      "torch": "2.11.0+cu128",
+      "transformers": "5.15.0",
+      "accelerate": "1.14.0",
+      "bitsandbytes": "0.50.1",
+      "auto_gptq": null,
+      "autoawq": null,
+      "llama_cpp": null,
+      "vllm": null,
+      "numpy": "2.1.3"
+    },
+    "torch": {
+      "installed": true,
+      "version": "2.11.0+cu128",
+      "cuda_built": true,
+      "cuda_version": "12.8",
+      "mps_built": false,
+      "cuda_available": true,
+      "mps_available": false,
+      "gpu": {
+        "index": 0,
+        "name": "Tesla T4",
+        "total_memory_mb": 14912.69,
+        "multi_processor_count": 40,
+        "major": 7,
+        "minor": 5
+      }
+    },
+    "colab": true,
+    "hf_home": null,
+    "cuda_visible_devices": null,
+    "ram": {
+      "total_mb": 12975.53,
+      "available_mb": 9236.81
+    }
+  },
+  "reason": null,
+  "metrics": {
+    "load_time_s": 4.195520754999961,
+    "ttft_ms": {
+      "n": 1,
+      "mean": 59.222614999953294,
+      "std": 0.0,
+      "min": 59.222614999953294,
+      "p50": 59.222614999953294,
+      "p95": 59.222614999953294,
+      "p99": 59.222614999953294,
+      "max": 59.222614999953294,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "e2e_latency_ms": {
+      "n": 1,
+      "mean": 381.8593040000451,
+      "std": 0.0,
+      "min": 381.8593040000451,
+      "p50": 381.8593040000451,
+      "p95": 381.8593040000451,
+      "p99": 381.8593040000451,
+      "max": 381.8593040000451,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "inter_token_latency_ms": {
+      "n": 7,
+      "mean": 44.6820818571853,
+      "std": 0.916580218013821,
+      "min": 43.5679130000608,
+      "p50": 44.393831999968825,
+      "p95": 46.092564900118305,
+      "p99": 46.23972018011045,
+      "max": 46.27650900010849,
+      "ci95_low": 43.94866493531411,
+      "ci95_high": 45.41549877905649
+    },
+    "tokens_per_sec": {
+      "n": 1,
+      "mean": 20.950124604006128,
+      "std": 0.0,
+      "min": 20.950124604006128,
+      "p50": 20.950124604006128,
+      "p95": 20.950124604006128,
+      "p99": 20.950124604006128,
+      "max": 20.950124604006128,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "prompt_tokens": 98,
+    "completion_tokens_mean": 8.0,
+    "peak_rss_mb": 2876.34,
+    "peak_gpu_allocated_mb": 828.654,
+    "peak_gpu_reserved_mb": 2178.0,
+    "model_weight_mb": 712.176,
+    "perplexity": null,
+    "energy_j": null,
+    "extra": {
+      "weight_mb": 712.176,
+      "backend_extras": {},
+      "memory_end": {
+        "rss_mb": 2876.34,
+        "allocated_mb": 800.502,
+        "reserved_mb": 2178.0,
+        "max_allocated_mb": 828.654
+      },
+      "energy_probe": {
+        "supported": true,
+        "backend": "pynvml",
+        "instant_watts": 32.755
+      }
+    }
+  },
+  "samples": [
+    {
+      "prompt_tokens": 98,
+      "completion_tokens": 8,
+      "ttft_ms": 59.222614999953294,
+      "e2e_ms": 381.8593040000451,
+      "inter_token_ms_mean": 44.6820818571853,
+      "tokens_per_sec": 20.950124604006128,
+      "text_preview": "\n\nBased on the text material",
+      "memory": {
+        "before": {
+          "rss_mb": 2876.34,
+          "allocated_mb": 800.504,
+          "reserved_mb": 2178.0,
+          "max_allocated_mb": 800.504
+        },
+        "after": {
+          "rss_mb": 2876.34,
+          "allocated_mb": 802.822,
+          "reserved_mb": 2178.0,
+          "max_allocated_mb": 828.654
+        },
+        "peak": {
+          "rss_mb": 2876.34,
+          "allocated_mb": 802.822,
+          "reserved_mb": 2178.0,
+          "max_allocated_mb": 828.654
+        }
+      }
+    }
+  ],
+  "notes": [
+    "All timings are wall-clock on this machine.",
+    "First-token time is prefill latency of the decode loop.",
+    "Discarded 1 warmup run(s) before measurement.",
+    "search: wall-clock measurement"
+  ]
+}

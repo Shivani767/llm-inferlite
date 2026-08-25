@@ -1,0 +1,21 @@
+name: optimizer_macbook_scale
+seed: 42
+seeds: [42, 123, 456, 789, 1000]
+budgets: [2, 4, 8, 16]
+model_id: gpt2
+warmup_runs: 1
+measure_runs: 2
+keep_one_method: false
+results_dir: results/optimizer_macbook_scale
+# 2 methods × 5 contexts × 4 decode lengths = 40 wall-clock jobs.
+# Grid is measured once; random / InferLite / heuristic replay those records
+# at every seed × budget. Do not mix with the historical n=8 study.
+search_space:
+  methods: [fp32, fp16]
+  context_tokens: [32, 48, 64, 96, 128]
+  max_new_tokens: [8, 12, 16, 24]
+  batch_sizes: [1]
+  skip_unsupported: true
+strategies: [grid, random, heuristic, inferlite]
+experiments:
+  - type: search

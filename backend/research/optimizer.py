@@ -9,17 +9,27 @@ from __future__ import annotations
 import random
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
+from research.backends import try_load
 from research.capabilities import probe
 from research.energy import probe_energy
 from research.engine import run_benchmark
-from research.env import collect_environment, set_seed
+from research.env import collect_environment, select_device, set_seed
 from research.experiments.pareto import hypervolume_throughput_memory, pareto_front
+from research.metrics import mean_std_ci95
 from research.predictor import PerformancePredictor
 from research.schema import ExperimentRecord, Status
 from research.search_space import Candidate, from_config
 from research.workloads import prompt_for_tokens
 
 EvalFn = Callable[[Candidate], ExperimentRecord]
+
+RESEARCH_QUESTION = (
+    "Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal "
+    "LLM inference configurations using substantially fewer measurements than "
+    "exhaustive search?"
+)
+DEFAULT_SEEDS = (42, 123, 456, 789, 1000)
+DEFAULT_BUDGETS = (2, 4, 8, 16)
 
 
 def _free_memory() -> None:
@@ -211,6 +221,34 @@ def np_all_finite(vec: Sequence[float]) -> bool:
     return all(v is not None and math.isfinite(float(v)) for v in vec)
 
 
+def _evict_other_methods(cache: Dict[str, Any], keep: str) -> None:
+    for method, loaded in list(cache.items()):
+        if method == keep:
+            continue
+        closer = getattr(loaded, "close", None)
+        if callable(closer):
+            try:
+                closer()
+            except Exception:
+                pass
+        cache.pop(method, None)
+    _free_memory()
+
+
+def close_loaded(cache: Optional[Dict[str, Any]]) -> None:
+    if not cache:
+        return
+    for loaded in list(cache.values()):
+        closer = getattr(loaded, "close", None)
+        if callable(closer):
+            try:
+                closer()
+            except Exception:
+                pass
+    cache.clear()
+    _free_memory()
+
+
 def make_eval_fn(
     *,
     model_id: str,
@@ -220,14 +258,14 @@ def make_eval_fn(
     tokenizer: Any = None,
     loaded_by_method: Optional[Dict[str, Any]] = None,
     extra_load: Optional[Dict[str, Any]] = None,
+    keep_one_method: bool = False,
 ) -> EvalFn:
-    """Wall-clock evaluator. Reuses a loaded model per method when provided."""
+    """Wall-clock evaluator. Loads each precision once and reuses it across candidates."""
     extra_load = extra_load or {}
     cache = loaded_by_method if loaded_by_method is not None else {}
 
     def _eval(cand: Candidate) -> ExperimentRecord:
-        prompt = prompt_for_tokens(cand.context_tokens, tokenizer=tokenizer)
-        loaded = cache.get(cand.method)
+        prompt = prompt_for_tokens(cand.context_tokens, tokenizer=tokenizer or extra_load.get("tokenizer"))
         method = cand.method
         backend = "transformers"
         mid = model_id
@@ -240,6 +278,14 @@ def make_eval_fn(
             extra_kw["n_ctx"] = int(
                 extra_load.get("n_ctx") or max(256, cand.context_tokens + cand.max_new_tokens + 32)
             )
+        injected = extra_load.get("model")
+        loaded = cache.get(cand.method)
+        if loaded is None and injected is None:
+            if keep_one_method:
+                _evict_other_methods(cache, cand.method)
+            loaded, _err = try_load(method, mid, device=select_device(), **extra_kw)
+            if loaded is not None:
+                cache[cand.method] = loaded
         rec = run_benchmark(
             model_id=mid,
             method=method,
@@ -251,7 +297,7 @@ def make_eval_fn(
             seed=seed,
             experiment_type="search",
             loaded=loaded,
-            model=extra_load.get("model") if cand.method in {"fp32", "fp16"} else extra_load.get("model"),
+            model=injected,
             tokenizer=extra_load.get("tokenizer"),
             config={
                 "context_tokens": cand.context_tokens,
@@ -283,6 +329,7 @@ def run_strategy(
     *,
     budget: Optional[int] = None,
     seed: int = 42,
+    verbose: bool = True,
 ) -> Dict[str, Any]:
     rng = random.Random(seed)
     pool = list(candidates)
@@ -317,7 +364,8 @@ def run_strategy(
     records: List[ExperimentRecord] = []
     seen = set()
     for cand in chosen:
-        print(f"[search {name}] {cand.key}", flush=True)
+        if verbose:
+            print(f"[search {name}] {cand.key}", flush=True)
         rec = evaluate(cand)
         records.append(rec)
         seen.add(cand.key)
@@ -329,7 +377,8 @@ def run_strategy(
             measured_now = [r for r in records if r.status == Status.MEASURED]
             order = inferlite_order(remaining, measured_now, rng)
             nxt = order[0] if order else remaining[0]
-            print(f"[search {name}] {nxt.key}", flush=True)
+            if verbose:
+                print(f"[search {name}] {nxt.key}", flush=True)
             records.append(evaluate(nxt))
             seen.add(nxt.key)
             remaining = [c for c in remaining if c.key not in seen]
@@ -389,10 +438,7 @@ def compare_strategies(
             }
         )
     return {
-        "research_question": (
-            "Can we find a strong LLM inference configuration for given hardware "
-            "and workload without exhaustive benchmarking?"
-        ),
+        "research_question": RESEARCH_QUESTION,
         "n_search_space": len(candidates),
         "inferlite_budget": inf_budget,
         "energy": probe_energy(),
@@ -404,18 +450,188 @@ def compare_strategies(
     }
 
 
+def _strategy_budget(name: str, budget: Optional[int], n_space: int) -> Optional[int]:
+    if name == "grid":
+        return None
+    if name == "heuristic":
+        return 1
+    return budget if budget is not None else max(1, min(n_space, max(3, n_space // 2)))
+
+
+def _hv_ratio(hv: Optional[float], grid_hv: Optional[float]) -> Optional[float]:
+    if grid_hv in (None, 0) or hv is None:
+        return None
+    return float(hv) / float(grid_hv)
+
+
+def run_budget_sweep(
+    candidates: Sequence[Candidate],
+    evaluate: EvalFn,
+    *,
+    seeds: Sequence[int],
+    budgets: Sequence[int],
+    strategies: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    """Measure the exhaustive grid once, then replay budgeted strategies from cache.
+
+    Random / InferLite / heuristic never invent metrics: each pick is a previously
+    timed wall-clock record. InferLite's sequential acquisition still uses the
+    measured values of points it has already chosen.
+    """
+    names = list(strategies or ("grid", "random", "heuristic", "inferlite"))
+    evaluate = cached_evaluate(evaluate)
+    seed_list = [int(s) for s in seeds]
+    n_space = len(candidates)
+    budget_list = sorted({max(1, min(int(b), n_space)) for b in budgets})
+
+    print(f"[search grid] measuring {n_space} configurations once (wall-clock)", flush=True)
+    grid = run_strategy("grid", candidates, evaluate, budget=None, seed=seed_list[0], verbose=True)
+    grid_hv = grid.get("hypervolume")
+    grid_n = grid.get("n_measured") or 0
+
+    budgeted = [n for n in names if n != "grid"]
+    sweep = []
+    for budget in budget_list:
+        by_strat: Dict[str, Any] = {}
+        for name in budgeted:
+            hvs: List[Optional[float]] = []
+            ratios: List[Optional[float]] = []
+            n_evals: List[int] = []
+            for seed in seed_list:
+                b = _strategy_budget(name, budget, n_space)
+                payload = run_strategy(
+                    name, candidates, evaluate, budget=b, seed=seed, verbose=False
+                )
+                hv = payload.get("hypervolume")
+                hvs.append(hv)
+                ratios.append(_hv_ratio(hv, grid_hv))
+                n_evals.append(int(payload.get("n_evaluated") or 0))
+            by_strat[name] = {
+                "n_evaluated": n_evals[0] if n_evals else 0,
+                "hypervolume": mean_std_ci95(hvs),
+                "hv_vs_grid": mean_std_ci95(ratios),
+                "per_seed": [
+                    {
+                        "seed": seed,
+                        "hypervolume": hv,
+                        "hv_vs_grid": ratio,
+                        "n_evaluated": n_eval,
+                    }
+                    for seed, hv, ratio, n_eval in zip(seed_list, hvs, ratios, n_evals)
+                ],
+            }
+        sweep.append(
+            {
+                "budget": budget,
+                "n_search_space": n_space,
+                "grid_hypervolume": grid_hv,
+                "strategies": by_strat,
+            }
+        )
+
+    highlight = 4 if 4 in budget_list else (budget_list[len(budget_list) // 2] if budget_list else n_space)
+    highlight_row = next((row for row in sweep if row["budget"] == highlight), sweep[-1] if sweep else None)
+    comparison = [
+        {
+            "strategy": "grid",
+            "n_evaluated": grid.get("n_evaluated"),
+            "n_measured": grid_n,
+            "hypervolume": grid_hv,
+            "hv_vs_grid": 1.0 if grid_hv is not None else None,
+            "hv_mean": grid_hv,
+            "hv_std": 0.0,
+            "hv_ci95_low": grid_hv,
+            "hv_ci95_high": grid_hv,
+            "seeds": seed_list,
+            "note": "exhaustive wall-clock grid; one measurement per configuration",
+        }
+    ]
+    if highlight_row:
+        for name in budgeted:
+            payload = highlight_row["strategies"][name]
+            hv = payload["hypervolume"]
+            ratio = payload["hv_vs_grid"]
+            comparison.append(
+                {
+                    "strategy": name,
+                    "n_evaluated": payload.get("n_evaluated"),
+                    "n_measured": payload.get("n_evaluated"),
+                    "hypervolume": hv.get("mean"),
+                    "hv_vs_grid": ratio.get("mean"),
+                    "hv_mean": hv.get("mean"),
+                    "hv_std": hv.get("std"),
+                    "hv_ci95_low": hv.get("ci95_low"),
+                    "hv_ci95_high": hv.get("ci95_high"),
+                    "hv_vs_grid_mean": ratio.get("mean"),
+                    "hv_vs_grid_std": ratio.get("std"),
+                    "hv_vs_grid_ci95_low": ratio.get("ci95_low"),
+                    "hv_vs_grid_ci95_high": ratio.get("ci95_high"),
+                    "seeds": seed_list,
+                    "highlight_budget": highlight,
+                    "note": f"mean ± 95% t-interval over {len(seed_list)} seeds at budget {highlight}",
+                }
+            )
+
+    inferlite_beats = []
+    for row in sweep:
+        inf = ((row["strategies"].get("inferlite") or {}).get("hv_vs_grid") or {}).get("mean")
+        rnd = ((row["strategies"].get("random") or {}).get("hv_vs_grid") or {}).get("mean")
+        inferlite_beats.append(
+            {
+                "budget": row["budget"],
+                "inferlite_hv_vs_grid_mean": inf,
+                "random_hv_vs_grid_mean": rnd,
+                "inferlite_beats_random_on_mean": (
+                    None if inf is None or rnd is None else bool(inf > rnd)
+                ),
+            }
+        )
+
+    return {
+        "research_question": RESEARCH_QUESTION,
+        "n_search_space": n_space,
+        "seeds": seed_list,
+        "budgets": budget_list,
+        "highlight_budget": highlight,
+        "energy": probe_energy(),
+        "device": probe().get("device"),
+        "comparison": comparison,
+        "sweep": sweep,
+        "inferlite_vs_random": inferlite_beats,
+        "grid": grid,
+        "strategies": {"grid": grid},
+        "grid_n": grid.get("n_evaluated"),
+        "simulation": False,
+        "replay": True,
+        "note": (
+            "Grid is measured once on the wall clock. Random, InferLite, and the "
+            "heuristic replay those records at each seed×budget; they do not invent "
+            "tokens/s or latency. InferLite still chooses sequentially: the surrogate "
+            "only sees points it has already picked. On this design InferLite uses "
+            "the ridge model only after three measured points, so budget 2 is a "
+            "diverse/heuristic seed, not surrogate search."
+        ),
+    }
+
+
 def run_search_study(config: Dict[str, Any], *, evaluate: Optional[EvalFn] = None) -> Dict[str, Any]:
     seed = int(config.get("seed", 42))
     set_seed(seed)
     candidates = from_config(config)
     budget = config.get("budget")
     strategies = config.get("strategies")
+    seeds = config.get("seeds")
+    budgets = config.get("budgets")
+    loaded_by_method: Dict[str, Any] = {}
+    owns_eval = evaluate is None
     if evaluate is None:
         evaluate = make_eval_fn(
             model_id=config.get("model_id") or "gpt2",
             seed=seed,
             warmup_runs=int(config.get("warmup_runs", 1)),
             measure_runs=int(config.get("measure_runs", 2)),
+            loaded_by_method=loaded_by_method,
+            keep_one_method=bool(config.get("keep_one_method", False)),
             extra_load={
                 "model": config.get("_model"),
                 "tokenizer": config.get("_tokenizer"),
@@ -425,26 +641,46 @@ def run_search_study(config: Dict[str, Any], *, evaluate: Optional[EvalFn] = Non
                 "n_ctx": config.get("n_ctx"),
             },
         )
-    return compare_strategies(
-        candidates,
-        evaluate,
-        budget=int(budget) if budget is not None else None,
-        seed=seed,
-        strategies=strategies,
-    )
+    try:
+        if seeds or budgets:
+            seed_list = [int(s) for s in (seeds or [seed])]
+            budget_list = [int(b) for b in (budgets or ([budget] if budget is not None else DEFAULT_BUDGETS))]
+            return run_budget_sweep(
+                candidates,
+                evaluate,
+                seeds=seed_list,
+                budgets=budget_list,
+                strategies=strategies,
+            )
+        return compare_strategies(
+            candidates,
+            evaluate,
+            budget=int(budget) if budget is not None else None,
+            seed=seed,
+            strategies=strategies,
+        )
+    finally:
+        if owns_eval:
+            close_loaded(loaded_by_method)
 
 
 def serialize_study(study: Dict[str, Any]) -> Dict[str, Any]:
     """JSON-safe study dump. Records are summarized, never filled in."""
-    out = {k: v for k, v in study.items() if k != "strategies"}
+    skip = {"strategies", "grid"}
+    out = {k: v for k, v in study.items() if k not in skip}
     strats = {}
     for name, payload in (study.get("strategies") or {}).items():
         recs = payload.get("records") or []
-        strats[name] = {
-            k: v
-            for k, v in payload.items()
-            if k != "records"
-        }
-        strats[name]["records"] = [r.model_dump() for r in recs]
+        strats[name] = {k: v for k, v in payload.items() if k != "records"}
+        strats[name]["records"] = [
+            r.model_dump() if hasattr(r, "model_dump") else r for r in recs
+        ]
     out["strategies"] = strats
+    grid = study.get("grid")
+    if grid is not None:
+        recs = grid.get("records") or []
+        out["grid"] = {k: v for k, v in grid.items() if k != "records"}
+        out["grid"]["records"] = [
+            r.model_dump() if hasattr(r, "model_dump") else r for r in recs
+        ]
     return out

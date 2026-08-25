@@ -181,7 +181,11 @@ def suite(config_path, results_dir, no_plots):
 @click.option("--results-dir", default=None)
 @click.option("--no-plots", is_flag=True)
 def optimize(config_path, results_dir, no_plots):
-    """Grid vs random vs heuristic vs InferLite. Wall-clock measurements only."""
+    """Grid vs random vs heuristic vs InferLite. Wall-clock measurements only.
+
+    YAML `seeds` + `budgets` measures the grid once, then replays budgeted
+    strategies (mean / std / 95% CI of hypervolume vs random).
+    """
     cfg = load_config(config_path)
     if not any((e.get("type") or "") in {"search", "optimize", "optimizer"} for e in (cfg.get("experiments") or [])):
         cfg.setdefault("experiments", []).append({"type": "search"})

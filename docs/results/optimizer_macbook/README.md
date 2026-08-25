@@ -11,6 +11,8 @@
 
 Cite this rerun, not the earlier scratch pass. Do not mix with Colab T4 TinyLlama numbers.
 
+This is the **n=8 single-seed pilot**. The centerpiece 40-config / 5-seed / multi-budget study is [`../optimizer_macbook_scale/`](../optimizer_macbook_scale/). On this seed random slightly beat InferLite; that ranking does not hold on the larger space.
+
 ## Baselines (same space, wall-clock only)
 
 | Strategy | Evals | Throughput–memory HV vs grid |

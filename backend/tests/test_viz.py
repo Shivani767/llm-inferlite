@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from research.schema import BenchmarkMetrics, ExperimentRecord, PercentileStats, Status, unsupported
-from research.viz import plot_suite
+from research.viz import plot_budget_sweep, plot_suite
 
 
 def test_plot_suite_writes_figures(tmp_path: Path):
@@ -43,3 +43,74 @@ def test_plot_suite_writes_figures(tmp_path: Path):
     assert "quantization_comparison.png" in names
     assert "unsupported_experiments.png" in names
     assert "pareto_throughput_memory.png" in names
+
+
+def test_plot_budget_sweep_writes_hv_figure(tmp_path: Path):
+    study = {
+        "n_search_space": 40,
+        "seeds": [42, 123, 456, 789, 1000],
+        "sweep": [
+            {
+                "budget": 2,
+                "strategies": {
+                    "random": {
+                        "hv_vs_grid": {
+                            "mean": 0.20,
+                            "std": 0.05,
+                            "ci95_low": 0.14,
+                            "ci95_high": 0.26,
+                        }
+                    },
+                    "inferlite": {
+                        "hv_vs_grid": {
+                            "mean": 0.22,
+                            "std": 0.04,
+                            "ci95_low": 0.17,
+                            "ci95_high": 0.27,
+                        }
+                    },
+                    "heuristic": {
+                        "hv_vs_grid": {
+                            "mean": 0.10,
+                            "std": 0.0,
+                            "ci95_low": 0.10,
+                            "ci95_high": 0.10,
+                        }
+                    },
+                },
+            },
+            {
+                "budget": 4,
+                "strategies": {
+                    "random": {
+                        "hv_vs_grid": {
+                            "mean": 0.35,
+                            "std": 0.06,
+                            "ci95_low": 0.28,
+                            "ci95_high": 0.42,
+                        }
+                    },
+                    "inferlite": {
+                        "hv_vs_grid": {
+                            "mean": 0.40,
+                            "std": 0.05,
+                            "ci95_low": 0.34,
+                            "ci95_high": 0.46,
+                        }
+                    },
+                    "heuristic": {
+                        "hv_vs_grid": {
+                            "mean": 0.10,
+                            "std": 0.0,
+                            "ci95_low": 0.10,
+                            "ci95_high": 0.10,
+                        }
+                    },
+                },
+            },
+        ],
+    }
+    paths = plot_budget_sweep(study, tmp_path)
+    assert paths
+    assert paths[0].name == "hv_vs_budget.png"
+    assert paths[0].exists()

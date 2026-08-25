@@ -17,7 +17,7 @@ from research.optimizer import run_search_study, serialize_study
 from research.predictor import ablation_study
 from research.schema import ExperimentRecord
 from research.storage import ResultStore
-from research.viz import plot_ablation, plot_search_study, plot_suite
+from research.viz import plot_ablation, plot_budget_sweep, plot_search_study, plot_suite
 
 
 def load_config(path: Union[str, Path]) -> Dict[str, Any]:
@@ -129,7 +129,18 @@ def run_config(
             study = run_search_study(
                 {
                     **config,
-                    **{k: spec.get(k) for k in ("budget", "strategies", "search_space") if spec.get(k) is not None},
+                    **{
+                        k: spec.get(k)
+                        for k in (
+                            "budget",
+                            "strategies",
+                            "search_space",
+                            "seeds",
+                            "budgets",
+                            "keep_one_method",
+                        )
+                        if spec.get(k) is not None
+                    },
                 }
             )
             grid_payload = (study.get("strategies") or {}).get("grid") or {}
@@ -141,8 +152,76 @@ def run_config(
                 _json.dumps(serialize_study(study), indent=2, default=str),
                 encoding="utf-8",
             )
+            if study.get("sweep"):
+                compact = {
+                    k: v
+                    for k, v in serialize_study(study).items()
+                    if k not in {"grid", "strategies"}
+                }
+                (store.root / "budget_sweep.json").write_text(
+                    _json.dumps(compact, indent=2, default=str),
+                    encoding="utf-8",
+                )
+                import csv as _csv
+
+                csv_path = store.root / "hv_vs_budget.csv"
+                with csv_path.open("w", encoding="utf-8", newline="") as fh:
+                    writer = _csv.DictWriter(
+                        fh,
+                        fieldnames=[
+                            "budget",
+                            "strategy",
+                            "hv_mean",
+                            "hv_std",
+                            "hv_ci95_low",
+                            "hv_ci95_high",
+                            "hv_vs_grid_mean",
+                            "hv_vs_grid_std",
+                            "hv_vs_grid_ci95_low",
+                            "hv_vs_grid_ci95_high",
+                            "n_seeds",
+                        ],
+                    )
+                    writer.writeheader()
+                    n_seeds = len(study.get("seeds") or [])
+                    for row in study["sweep"]:
+                        writer.writerow(
+                            {
+                                "budget": row["budget"],
+                                "strategy": "grid",
+                                "hv_mean": row.get("grid_hypervolume"),
+                                "hv_std": 0.0,
+                                "hv_ci95_low": row.get("grid_hypervolume"),
+                                "hv_ci95_high": row.get("grid_hypervolume"),
+                                "hv_vs_grid_mean": 1.0 if row.get("grid_hypervolume") is not None else None,
+                                "hv_vs_grid_std": 0.0,
+                                "hv_vs_grid_ci95_low": 1.0 if row.get("grid_hypervolume") is not None else None,
+                                "hv_vs_grid_ci95_high": 1.0 if row.get("grid_hypervolume") is not None else None,
+                                "n_seeds": n_seeds,
+                            }
+                        )
+                        for name, payload in (row.get("strategies") or {}).items():
+                            hv = payload.get("hypervolume") or {}
+                            ratio = payload.get("hv_vs_grid") or {}
+                            writer.writerow(
+                                {
+                                    "budget": row["budget"],
+                                    "strategy": name,
+                                    "hv_mean": hv.get("mean"),
+                                    "hv_std": hv.get("std"),
+                                    "hv_ci95_low": hv.get("ci95_low"),
+                                    "hv_ci95_high": hv.get("ci95_high"),
+                                    "hv_vs_grid_mean": ratio.get("mean"),
+                                    "hv_vs_grid_std": ratio.get("std"),
+                                    "hv_vs_grid_ci95_low": ratio.get("ci95_low"),
+                                    "hv_vs_grid_ci95_high": ratio.get("ci95_high"),
+                                    "n_seeds": n_seeds,
+                                }
+                            )
             if make_plots:
                 plots.extend(str(p) for p in plot_search_study(study, store.root / "figures"))
+                if study.get("sweep"):
+                    plots.extend(str(p) for p in plot_budget_sweep(study, store.root / "figures"))
                 measured = [r for r in records if r.status.value == "measured"]
                 if len(measured) >= 3:
                     plots.extend(str(p) for p in plot_ablation(ablation_study(measured), store.root / "figures"))

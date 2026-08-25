@@ -31,7 +31,7 @@ The 6.1 tok/s FP16-c32 row is the first generate after download/load with **no w
 | Heuristic (FP16, longer context on T4) | 1 | 0.22 |
 | Random | 2 | 0.041 |
 
-On this seed InferLite recovered most of the grid front at half the budget (it evaluated `fp16|c64` and `int4_bnb|c64`). Random drew the cold-start `fp16|c32` point. n=4 is small; do not claim the surrogate replaces grid on larger CUDA spaces.
+On this seed InferLite recovered most of the grid front at half the budget (it evaluated `fp16|c64` and `int4_bnb|c64`). Random drew the cold-start `fp16|c32` point. n=4 is small. The 30-config T4 scale is in [`../optimizer_colab_t4_scale/`](../optimizer_colab_t4_scale/).
 
 ## Predictor ablation (leave-one-out, n=4)
 
@@ -42,6 +42,8 @@ On this seed InferLite recovered most of the grid front at half the budget (it e
 | No quantization | −1.53 | −1.48 | −2.92 |
 | No workload | −2.41 | −2.94 | 0.999 |
 
-Memory still tracks quantization. P95 and tokens/s R² are negative at n=4 (cold-start outlier). Hardware features are constant on one T4.
+The predictor fails to generalize with only four T4 observations. Negative R² is kept on purpose. Do not “fix” these numbers. The n=30 T4 predictor is in [`../optimizer_colab_t4_scale/`](../optimizer_colab_t4_scale/).
+
+Memory still tracks quantization. Hardware features are constant on one T4.
 
 Files: `comparison.json`, `ablation.json`, `experiments.csv`, `figures/`.

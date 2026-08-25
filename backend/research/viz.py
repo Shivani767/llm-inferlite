@@ -246,6 +246,83 @@ def plot_search_study(study: dict, output_dir) -> List[Path]:
     return [path]
 
 
+def plot_budget_sweep(study: dict, output_dir) -> List[Path]:
+    """Hypervolume vs evaluation budget with 95% CI. The main InferLite-vs-random figure."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    sweep = study.get("sweep") or []
+    if not sweep:
+        return []
+
+    n_space = study.get("n_search_space") or sweep[0].get("n_search_space")
+    seeds = study.get("seeds") or []
+    fig, ax = plt.subplots(figsize=(8.2, 5.2))
+    budgets = [row["budget"] for row in sweep]
+    ax.axhline(
+        1.0,
+        color="#666666",
+        linestyle="--",
+        linewidth=1.4,
+        label=f"Grid (n={n_space})",
+    )
+
+    styles = {
+        "inferlite": {"color": "#1f4e79", "marker": "o", "label": "InferLite"},
+        "random": {"color": "#a03a2c", "marker": "s", "label": "Random"},
+        "heuristic": {"color": "#2c8a5f", "marker": "D", "label": "Heuristic (1 eval)"},
+    }
+    for name, style in styles.items():
+        xs, ys, ylo, yhi = [], [], [], []
+        for row in sweep:
+            payload = (row.get("strategies") or {}).get(name)
+            if not payload:
+                continue
+            ratio = payload.get("hv_vs_grid") or {}
+            mean = ratio.get("mean")
+            if mean is None:
+                continue
+            xs.append(row["budget"])
+            ys.append(mean)
+            low = ratio.get("ci95_low")
+            high = ratio.get("ci95_high")
+            ylo.append(mean - low if low is not None else 0.0)
+            yhi.append(high - mean if high is not None else 0.0)
+        if not xs:
+            continue
+        ax.errorbar(
+            xs,
+            ys,
+            yerr=None if name == "heuristic" else [ylo, yhi],
+            color=style["color"],
+            marker=style["marker"],
+            linewidth=1.8,
+            capsize=4,
+            label=style["label"],
+        )
+
+    ax.set_xlabel("Evaluation budget")
+    ax.set_ylabel("Hypervolume / exhaustive grid")
+    ax.set_ylim(bottom=0.0)
+    ax.set_xticks(budgets)
+    n_seeds = len(seeds)
+    ax.set_title(
+        "Does InferLite reach a good Pareto front faster than random search?"
+        + (f"\n{n_seeds} seeds, 95% t-interval, n={n_space} measured configs" if n_seeds else "")
+    )
+    ax.legend(loc="lower right")
+    fig.tight_layout()
+    path = output / "hv_vs_budget.png"
+    fig.savefig(path, dpi=160)
+    fig.savefig(path.with_suffix(".pdf"))
+    plt.close(fig)
+    return [path]
+
+
 def plot_ablation(report: dict, output_dir) -> List[Path]:
     import matplotlib
 

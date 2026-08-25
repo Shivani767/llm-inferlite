@@ -1,5 +1,5 @@
 from research.experiments.pareto import hypervolume_throughput_memory, pareto_front
-from research.optimizer import compare_strategies, hardware_heuristic, make_eval_fn
+from research.optimizer import compare_strategies, hardware_heuristic, make_eval_fn, run_budget_sweep
 from research.predictor import ablation_study
 from research.schema import Status
 from research.search_space import Candidate, enumerate_space
@@ -110,6 +110,54 @@ def test_compare_strategies_loads_each_candidate_once():
     compare_strategies(cands, counting, budget=3, seed=0)
     assert keys
     assert len(keys) == len(set(keys))
+
+
+def test_budget_sweep_replays_cached_measurements():
+    """Grid is timed once; seed×budget strategies reuse those wall-clock records."""
+    model = make_tiny_lm()
+    tok = TinyTokenizer()
+    cands = _space()
+    inner = make_eval_fn(
+        model_id="tiny-in-memory",
+        seed=0,
+        warmup_runs=0,
+        measure_runs=1,
+        tokenizer=tok,
+        extra_load={"model": model, "tokenizer": tok},
+    )
+    keys: list[str] = []
+
+    def counting(cand):
+        keys.append(cand.key)
+        return inner(cand)
+
+    study = run_budget_sweep(
+        cands,
+        counting,
+        seeds=[0, 1],
+        budgets=[2, 4],
+        strategies=["grid", "random", "heuristic", "inferlite"],
+    )
+    assert study["simulation"] is False
+    assert study["replay"] is True
+    assert len(keys) == len(cands)
+    assert len(keys) == len(set(keys))
+    assert study["n_search_space"] == 4
+    assert study["budgets"] == [2, 4]
+    assert len(study["sweep"]) == 2
+    for row in study["sweep"]:
+        inf = row["strategies"]["inferlite"]
+        rnd = row["strategies"]["random"]
+        assert inf["hypervolume"]["n"] == 2
+        assert rnd["hypervolume"]["n"] == 2
+        assert len(inf["per_seed"]) == 2
+        assert inf["n_evaluated"] == row["budget"]
+        assert rnd["n_evaluated"] == row["budget"]
+        assert row["strategies"]["heuristic"]["n_evaluated"] == 1
+    names = {row["strategy"] for row in study["comparison"]}
+    assert names == {"grid", "random", "heuristic", "inferlite"}
+    vs = {item["budget"]: item["inferlite_beats_random_on_mean"] for item in study["inferlite_vs_random"]}
+    assert set(vs) == {2, 4}
 
 
 def test_heuristic_prefers_supported_method():
