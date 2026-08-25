@@ -54,12 +54,13 @@ More detail: [`docs/architecture/system_overview.md`](docs/architecture/system_o
 
 ## Experimental results
 
-Three completed **measured** studies. Different models and devices — do not stack the tables.
+Four completed **measured** studies. Different models and backends — do not stack the tables.
 
 | Study | Model | Device | Artifacts |
 |-------|-------|--------|-----------|
 | Measurement suite | GPT-2 / DistilGPT-2 | MacBook MPS | [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/) |
 | T4 lite | TinyLlama 1.1B | Colab Tesla T4 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
+| T4 llama.cpp | TinyLlama 1.1B Q4_K_M | Colab Tesla T4 | [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/) |
 | Search vs baselines | GPT-2 | MacBook MPS | [`docs/results/optimizer_macbook/`](docs/results/optimizer_macbook/) |
 | Search vs baselines | TinyLlama 1.1B | Colab T4 | Run the search cells in `notebooks/inferlite_colab.ipynb` → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
 
@@ -86,9 +87,21 @@ KV cache, speculative decoding, and batching clocks: [`docs/results/macbook_mps_
 | FP16 | 35.0 | 468 | 2108 |
 | INT4 NF4 (bitsandbytes) | 15.3 | 1057 | 803 |
 
-INT8 was measured and dominated (~3 tok/s on the figure). A bar labeled `gptq` loaded **dense** TinyLlama and is not cited as GPTQ. AWQ/GGUF/SmoothQuant/SqueezeLLM unsupported.
+INT8 was measured and dominated (~3 tok/s on the figure). A bar labeled `gptq` loaded **dense** TinyLlama and is not cited as GPTQ. AWQ/SmoothQuant/SqueezeLLM unsupported. GGUF was unsupported in this suite (`llama_cpp` missing) and was timed later with llama.cpp.
 
-### 3. Search vs baselines (same Mac, GPT-2, 8-config space)
+### 3. Colab Tesla T4 / llama.cpp GGUF (TinyLlama Q4_K_M)
+
+**1 measured, 0 unsupported, 0 error.** Same 16-new-token workload as the lite suite. `llama-cpp-python` 0.3.35, CUDA 12.4 wheel, `n_gpu_layers=-1`.
+
+| Method | tok/s | P95 e2e (ms) | Engine mem snapshot (MB) |
+|--------|------:|-------------:|-------------------------:|
+| GGUF Q4_K_M | 172.5 | 105.8 | 9.125 |
+
+This is **llama.cpp**, not Hugging Face. 9.125 MB is the engine’s PyTorch/RSS snapshot, not llama.cpp VRAM. Do not put 172 tok/s on the bitsandbytes Pareto plot without labeling the backend.
+
+Full stdout: [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/).
+
+### 4. Search vs baselines (same Mac, GPT-2, 8-config space)
 
 fp32/fp16 × context 32/96 × 8/16 new tokens. Grid: 8 measured. InferLite and random: 4 evaluations. Energy: unsupported (no NVML).
 
@@ -109,7 +122,7 @@ On this seed, random slightly beat InferLite at half the grid budget. Neither re
 
 ## Limits
 
-MPS memory is RSS. Search is seed-sensitive at n=8 (this rerun: random 0.32× HV vs InferLite 0.30×). Sliding-window is truncation. Speculative / continuous batching are research loops, not vLLM. Energy, MMLU, GSM8K, HumanEval, and 7B+ Llama/Mistral/Qwen are not scored here.
+MPS memory is RSS. llama.cpp’s 9.125 MB engine snapshot is not llama.cpp VRAM. Search is seed-sensitive at n=8 (this rerun: random 0.32× HV vs InferLite 0.30×). Sliding-window is truncation. Speculative / continuous batching are research loops, not vLLM. Energy, MMLU, GSM8K, HumanEval, and 7B+ Llama/Mistral/Qwen are not scored here.
 
 ```
 @software{inferlite2026,

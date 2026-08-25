@@ -31,4 +31,6 @@ These two points are the Pareto front (minimize P95 and memory, maximize tok/s).
 
 The `gptq` bar loaded **dense** `TinyLlama/TinyLlama-1.1B-Chat-v1.0` because no `gptq_model_id` was set. It is **not** a GPTQ checkpoint measurement. Do not cite those clocks as GPTQ.
 
-Unsupported (not scored): AWQ (`autoawq` missing), GGUF (`llama_cpp` missing), SmoothQuant, SqueezeLLM.
+Unsupported **in this lite suite**: AWQ (`autoawq` missing), GGUF (`llama_cpp` missing at the time), SmoothQuant, SqueezeLLM.
+
+GGUF was measured later in the same Colab session after installing a CUDA 12.4 `llama-cpp-python` wheel: [`colab_t4_gguf/`](../colab_t4_gguf/).

@@ -48,7 +48,7 @@
   },
   "unsupported": [
     {"method": "awq", "reason": "autoawq not available: No module named 'autoawq'"},
-    {"method": "gguf_q4_k_m", "reason": "llama_cpp not available: No module named 'llama_cpp'"},
+    {"method": "gguf_q4_k_m", "reason": "llama_cpp not available: No module named 'llama_cpp'", "later": "measured in docs/results/colab_t4_gguf/ after installing llama-cpp-python 0.3.35 cu124"},
     {"method": "smooth_quant", "reason": "SmoothQuant is not wired: needs a dedicated calibration toolkit not bundled here"},
     {"method": "squeeze_llm", "reason": "SqueezeLLM is not bundled; no silent fallback numbers are produced"}
   ],

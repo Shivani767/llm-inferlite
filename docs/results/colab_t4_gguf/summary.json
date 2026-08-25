@@ -1,0 +1,32 @@
+{
+  "name": "colab_t4_gguf",
+  "date_utc": "2026-08-25",
+  "config": "configs/colab_t4_gguf.yaml",
+  "model_id": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
+  "gguf_file": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+  "device": "cuda",
+  "gpu": {
+    "name": "Tesla T4",
+    "host": "Google Colab"
+  },
+  "llama_cpp_python": "0.3.35",
+  "install": "pip install llama-cpp-python --only-binary=:all: --no-cache-dir --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124",
+  "n_gpu_layers": -1,
+  "gpu_offload_compiled": null,
+  "counts": {"measured": 1, "unsupported": 0, "error": 0},
+  "source": "notebook stdout from notebooks/inferlite_colab.ipynb GGUF cell; engine CSV remained on the Colab VM at /content/llm-inferlite/backend/results/colab_t4_gguf/experiments.csv",
+  "exact_from_stdout": {
+    "gguf": {
+      "status": "measured",
+      "backend": "llama.cpp",
+      "tokens_per_sec": 172.50009422036783,
+      "p95_latency_ms": 105.76858675005951,
+      "memory_mb": 9.125,
+      "memory_note": "Engine snapshot (PyTorch/RSS). Not llama.cpp VRAM from nvidia-smi."
+    }
+  },
+  "colab_resources_stdout": {
+    "disk": "overlay 113G 50G 64G 44%",
+    "mem": "12Gi used 7.6Gi free 158Mi available 4.8Gi"
+  }
+}
