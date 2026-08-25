@@ -26,15 +26,24 @@ class LoadedModel:
     _tokenizer: Any = None
 
     def close(self) -> None:
+        impl = self._impl
         self._impl = None
         self._tokenizer = None
         try:
-            import torch
             import gc
+            import torch
 
+            if impl is not None:
+                try:
+                    impl.to("cpu")
+                except Exception:
+                    pass
+                del impl
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+                if hasattr(torch.cuda, "ipc_collect"):
+                    torch.cuda.ipc_collect()
         except Exception:
             pass
 
@@ -119,7 +128,7 @@ def load_transformers(
             _tokenizer=tokenizer,
         )
 
-    load_kwargs: Dict[str, Any] = {"trust_remote_code": True}
+    load_kwargs: Dict[str, Any] = {"trust_remote_code": True, "low_cpu_mem_usage": True}
     precision = method
 
     if method in {"fp16", "bf16", "fp32"}:
@@ -133,7 +142,10 @@ def load_transformers(
         precision = method
     elif method == "dynamic_int8":
         model = AutoModelForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch.float32, trust_remote_code=True
+            model_id,
+            torch_dtype=torch.float32,
+            trust_remote_code=True,
+            low_cpu_mem_usage=True,
         )
         model.to("cpu")
         model = torch.quantization.quantize_dynamic(
@@ -151,6 +163,7 @@ def load_transformers(
             quantization_config=bnb,
             device_map="auto",
             trust_remote_code=True,
+            low_cpu_mem_usage=True,
         )
         device = "cuda"
         precision = "int8_bnb"
@@ -167,6 +180,7 @@ def load_transformers(
             quantization_config=bnb,
             device_map="auto",
             trust_remote_code=True,
+            low_cpu_mem_usage=True,
         )
         device = "cuda"
         precision = "int4_nf4"
@@ -181,6 +195,7 @@ def load_transformers(
             gptq_id,
             device_map="auto",
             trust_remote_code=True,
+            low_cpu_mem_usage=True,
         )
         extras["loaded_from"] = gptq_id
         device = "cuda"
@@ -200,6 +215,7 @@ def load_transformers(
                 awq_id,
                 device_map="auto",
                 trust_remote_code=True,
+                low_cpu_mem_usage=True,
             )
             extras["loader"] = "transformers"
         extras["loaded_from"] = awq_id

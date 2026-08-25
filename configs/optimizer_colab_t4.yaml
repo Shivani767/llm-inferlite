@@ -1,15 +1,15 @@
 name: optimizer_colab_t4
 seed: 42
 model_id: TinyLlama/TinyLlama-1.1B-Chat-v1.0
-warmup_runs: 1
+warmup_runs: 0
 measure_runs: 1
-budget: 3
+budget: 2
 results_dir: results/optimizer_colab_t4
-# 2 methods × 2 contexts = 4 wall-clock jobs. Skip INT8 (measured slow on T4) and GPTQ
-# (no checkpoint). Do not install extra multi-GB packages.
+# Two unique loads only (fp16 + INT4). Strategies share a measurement cache so
+# grid/random/heuristic/InferLite do not reload TinyLlama 12+ times (that OOMs Colab RAM).
 search_space:
   methods: [fp16, int4_bnb]
-  context_tokens: [32, 64]
+  context_tokens: [32]
   max_new_tokens: [8]
   batch_sizes: [1]
   skip_unsupported: true

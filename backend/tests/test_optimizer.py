@@ -88,6 +88,30 @@ def test_predictor_ablation_on_measured_rows():
     assert front
 
 
+def test_compare_strategies_loads_each_candidate_once():
+    """Grid/random/heuristic/InferLite share measurements so Colab does not reload TinyLlama."""
+    model = make_tiny_lm()
+    tok = TinyTokenizer()
+    cands = _space()
+    inner = make_eval_fn(
+        model_id="tiny-in-memory",
+        seed=0,
+        warmup_runs=0,
+        measure_runs=1,
+        tokenizer=tok,
+        extra_load={"model": model, "tokenizer": tok},
+    )
+    keys: list[str] = []
+
+    def counting(cand):
+        keys.append(cand.key)
+        return inner(cand)
+
+    compare_strategies(cands, counting, budget=3, seed=0)
+    assert keys
+    assert len(keys) == len(set(keys))
+
+
 def test_heuristic_prefers_supported_method():
     cands = [
         Candidate("fp32", 32, 8, 1),

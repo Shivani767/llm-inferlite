@@ -22,6 +22,38 @@ from research.workloads import prompt_for_tokens
 EvalFn = Callable[[Candidate], ExperimentRecord]
 
 
+def _free_memory() -> None:
+    """Drop CPU/GPU caches after a wall-clock job. Does not invent metrics."""
+    import gc
+
+    gc.collect()
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            if hasattr(torch.cuda, "ipc_collect"):
+                torch.cuda.ipc_collect()
+    except Exception:
+        pass
+
+
+def cached_evaluate(evaluate: EvalFn) -> EvalFn:
+    """Reuse a measured candidate across grid/random/heuristic/InferLite. One load per key."""
+    store: Dict[str, ExperimentRecord] = {}
+
+    def _inner(cand: Candidate) -> ExperimentRecord:
+        hit = store.get(cand.key)
+        if hit is not None:
+            return hit
+        rec = evaluate(cand)
+        store[cand.key] = rec
+        _free_memory()
+        return rec
+
+    return _inner
+
+
 def _objectives(rec: ExperimentRecord) -> Optional[Tuple[float, float, float]]:
     if rec.status != Status.MEASURED or rec.metrics is None:
         return None
@@ -224,8 +256,7 @@ def make_eval_fn(
             rec.metrics.extra = {**(rec.metrics.extra or {}), "energy_probe": energy}
             if not energy.get("supported"):
                 rec.notes.append(energy.get("reason") or "energy unsupported")
-        if rec.status == Status.MEASURED and loaded is None and extra_load.get("cache_loads"):
-            pass
+        _free_memory()
         return rec
 
     return _eval
@@ -316,6 +347,7 @@ def compare_strategies(
     names = list(strategies or ("grid", "random", "heuristic", "inferlite"))
     grid_budget = len(candidates)
     inf_budget = budget if budget is not None else max(1, min(grid_budget, max(3, grid_budget // 2)))
+    evaluate = cached_evaluate(evaluate)
     results = {}
     for name in names:
         b = None if name == "grid" else (1 if name == "heuristic" else inf_budget)

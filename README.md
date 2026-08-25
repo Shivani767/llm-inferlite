@@ -42,7 +42,7 @@ If the venv is missing: `python3.12 -m venv .venv && source .venv/bin/activate &
 
 Without activating: `.venv/bin/python -m research optimize --config ../configs/optimizer_macbook.yaml`
 
-Colab T4: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) — install **only** `backend/requirements-colab.txt`.
+Colab T4: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) — install **only** `backend/requirements-colab.txt`. After a RAM crash, delete the runtime and skip the lite suite; search is two unique TinyLlama loads.
 
 ## Architecture
 
