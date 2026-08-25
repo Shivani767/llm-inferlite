@@ -1,0 +1,15 @@
+name: ci_tiny
+seed: 42
+model_id: in-memory-tiny
+prompt: "hello"
+max_new_tokens: 4
+warmup_runs: 0
+measure_runs: 2
+results_dir: results/ci_tiny
+experiments:
+  - type: quantization
+    methods:
+      - fp32
+      - int8_bnb
+      - awq
+      - tensorrt_llm

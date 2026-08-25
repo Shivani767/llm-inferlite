@@ -1,0 +1,9 @@
+# Extra packages for free Colab GPUs (T4). Install after the core requirements.
+bitsandbytes
+sentencepiece
+protobuf
+# Optional; only if the Colab runtime can build them:
+# auto-gptq
+# autoawq
+# llama-cpp-python
+# vllm

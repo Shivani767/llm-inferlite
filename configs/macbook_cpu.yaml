@@ -1,0 +1,38 @@
+name: macbook_cpu
+seed: 42
+model_id: gpt2
+draft_model_id: distilgpt2
+prompt: "The future of efficient language model inference is"
+max_new_tokens: 24
+warmup_runs: 1
+measure_runs: 3
+results_dir: results/macbook_cpu
+# Optional GGUF: install llama-cpp-python and set both fields.
+# gguf_repo: ggml-org/gpt2-GGUF
+# gguf_file: gpt2-Q4_K_M.gguf
+experiments:
+  - type: quantization
+    methods:
+      - fp32
+      - fp16
+      - bf16
+      - dynamic_int8
+      - int8_bnb
+      - int4_bnb
+      - awq
+      - gptq
+      - gguf_q4_k_m
+      - smooth_quant
+      - squeeze_llm
+  - type: kv_cache
+    context_lengths: [32, 64, 128]
+    max_new_tokens: 12
+    measure_runs: 2
+  - type: speculative
+    gammas: [2, 4]
+    max_new_tokens: 24
+    measure_runs: 2
+  - type: batching
+    num_requests: 4
+    max_batch_size: 2
+    max_new_tokens: 8
