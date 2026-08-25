@@ -1,0 +1,252 @@
+{
+  "research_question": "Can we find a strong LLM inference configuration for given hardware and workload without exhaustive benchmarking?",
+  "n_search_space": 8,
+  "inferlite_budget": 4,
+  "energy": {
+    "supported": false,
+    "reason": "no NVML/power sensor on this machine; energy is not scored"
+  },
+  "device": "mps",
+  "comparison": [
+    {
+      "strategy": "grid",
+      "n_evaluated": 8,
+      "n_measured": 8,
+      "hypervolume": 56115.98997927094,
+      "hv_vs_grid": 1.0,
+      "simulation": false
+    },
+    {
+      "strategy": "random",
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "hypervolume": 18167.46279431828,
+      "hv_vs_grid": 0.3237484146858904,
+      "simulation": false
+    },
+    {
+      "strategy": "heuristic",
+      "n_evaluated": 1,
+      "n_measured": 1,
+      "hypervolume": 12621.449947760126,
+      "hv_vs_grid": 0.22491717516562476,
+      "simulation": false
+    },
+    {
+      "strategy": "inferlite",
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "hypervolume": 16743.842368263457,
+      "hv_vs_grid": 0.29837916740751746,
+      "simulation": false
+    }
+  ],
+  "grid_n": 8,
+  "simulation": false,
+  "strategies": {
+    "grid": {
+      "strategy": "grid",
+      "n_candidates": 8,
+      "n_evaluated": 8,
+      "n_measured": 8,
+      "n_unsupported": 0,
+      "budget": null,
+      "hypervolume": 56115.98997927094,
+      "pareto": [
+        {
+          "experiment_id": "2026-08-25T175542Z_fp32_6c75dec9",
+          "method": "fp32",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 54.64888749979764,
+            "memory_mb": 491.094,
+            "tokens_per_sec": 148.67461605451044
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175555Z_fp16_c10d7a8c",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 50.53927469989503,
+            "memory_mb": 769.328,
+            "tokens_per_sec": 161.49064907732105
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175558Z_fp16_ad35a742",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 111.7221077000977,
+            "memory_mb": 779.156,
+            "tokens_per_sec": 166.79245620420264
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175601Z_fp16_4444e36b",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 49.781468399987716,
+            "memory_mb": 793.047,
+            "tokens_per_sec": 163.5092521196546
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175604Z_fp16_7b1b1f7e",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 96.83407464954144,
+            "memory_mb": 802.125,
+            "tokens_per_sec": 166.02477079664396
+          }
+        }
+      ],
+      "simulation": false
+    },
+    "random": {
+      "strategy": "random",
+      "n_candidates": 8,
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "n_unsupported": 0,
+      "budget": 4,
+      "hypervolume": 18167.46279431828,
+      "pareto": [
+        {
+          "experiment_id": "2026-08-25T175608Z_fp32_028d9e1b",
+          "method": "fp32",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 105.07326634988203,
+            "memory_mb": 757.188,
+            "tokens_per_sec": 153.47171318605763
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175611Z_fp32_dcecc745",
+          "method": "fp32",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 57.19511845013585,
+            "memory_mb": 755.391,
+            "tokens_per_sec": 140.9088751350814
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175614Z_fp16_9d01bf3f",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 103.08554199996252,
+            "memory_mb": 778.422,
+            "tokens_per_sec": 185.8830827641513
+          }
+        }
+      ],
+      "simulation": false
+    },
+    "heuristic": {
+      "strategy": "heuristic",
+      "n_candidates": 8,
+      "n_evaluated": 1,
+      "n_measured": 1,
+      "n_unsupported": 0,
+      "budget": 1,
+      "hypervolume": 12621.449947760126,
+      "pareto": [
+        {
+          "experiment_id": "2026-08-25T175621Z_fp16_2de093b3",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 51.482341649898444,
+            "memory_mb": 790.609,
+            "tokens_per_sec": 157.6481147196711
+          }
+        }
+      ],
+      "simulation": false
+    },
+    "inferlite": {
+      "strategy": "inferlite",
+      "n_candidates": 8,
+      "n_evaluated": 4,
+      "n_measured": 4,
+      "n_unsupported": 0,
+      "budget": 4,
+      "hypervolume": 16743.842368263457,
+      "pareto": [
+        {
+          "experiment_id": "2026-08-25T175624Z_fp32_3a5261be",
+          "method": "fp32",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 111.70867914993323,
+            "memory_mb": 786.984,
+            "tokens_per_sec": 143.8641906961809
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175627Z_fp16_378766f4",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 48.12857710062417,
+            "memory_mb": 800.031,
+            "tokens_per_sec": 169.27665413841902
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175630Z_fp32_2b226083",
+          "method": "fp32",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 116.33012355041501,
+            "memory_mb": 778.625,
+            "tokens_per_sec": 138.16395853698037
+          }
+        },
+        {
+          "experiment_id": "2026-08-25T175633Z_fp16_940aad58",
+          "method": "fp16",
+          "backend": "transformers",
+          "model_id": "gpt2",
+          "device": "mps",
+          "objectives": {
+            "p95_latency_ms": 67.78796665012123,
+            "memory_mb": 786.781,
+            "tokens_per_sec": 122.97793514010824
+          }
+        }
+      ],
+      "simulation": false
+    }
+  }
+}

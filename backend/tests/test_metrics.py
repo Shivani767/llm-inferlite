@@ -9,6 +9,9 @@ def test_percentile_stats_known_values():
     assert stats.min == 10
     assert stats.max == 50
     assert stats.p50 == 30
+    assert stats.ci95_low is not None
+    assert stats.ci95_high is not None
+    assert stats.ci95_low < stats.mean < stats.ci95_high
 
 
 def test_percentile_stats_empty():

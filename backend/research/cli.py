@@ -15,6 +15,7 @@ from research.experiments.kv_cache import run_kv_cache_suite
 from research.experiments.pareto import pareto_front
 from research.experiments.quantization import run_quantization_suite
 from research.experiments.speculative import run_speculative_suite
+from research.predictor import ablation_study
 from research.runner import load_config, run_config
 from research.storage import ResultStore
 from research.viz import plot_suite
@@ -173,6 +174,39 @@ def suite(config_path, results_dir, no_plots):
     cfg = load_config(config_path)
     summary = run_config(cfg, results_dir=results_dir, make_plots=not no_plots)
     _dump({k: v for k, v in summary.items() if k != "records"})
+
+
+@cli.command("optimize")
+@click.option("--config", "config_path", required=True, type=click.Path(exists=True))
+@click.option("--results-dir", default=None)
+@click.option("--no-plots", is_flag=True)
+def optimize(config_path, results_dir, no_plots):
+    """Grid vs random vs heuristic vs InferLite. Wall-clock measurements only."""
+    cfg = load_config(config_path)
+    if not any((e.get("type") or "") in {"search", "optimize", "optimizer"} for e in (cfg.get("experiments") or [])):
+        cfg.setdefault("experiments", []).append({"type": "search"})
+    if results_dir:
+        cfg["results_dir"] = results_dir
+    summary = run_config(cfg, results_dir=results_dir or cfg.get("results_dir"), make_plots=not no_plots)
+    _dump({k: v for k, v in summary.items() if k != "records"})
+
+
+@cli.command("predict")
+@click.option("--bundle", required=True, type=click.Path(exists=True), help="JSON bundle of measured records")
+@click.option("--out", default=None)
+def predict(bundle, out):
+    """Leave-one-out predictor + feature-group ablation on measured rows."""
+    store = ResultStore(None)
+    recs = store.load_json_file(bundle)
+    measured = [r for r in recs if r.status.value == "measured"]
+    report = ablation_study(measured)
+    if out:
+        from pathlib import Path
+        from research.viz import plot_ablation
+
+        paths = plot_ablation(report, out)
+        report["plots"] = [str(p) for p in paths]
+    _dump(report)
 
 
 @cli.command("simulate")

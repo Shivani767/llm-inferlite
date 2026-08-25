@@ -23,6 +23,8 @@ class PercentileStats(BaseModel):
     p95: float
     p99: float
     max: float
+    ci95_low: Optional[float] = None
+    ci95_high: Optional[float] = None
 
 
 class BenchmarkMetrics(BaseModel):
@@ -38,6 +40,7 @@ class BenchmarkMetrics(BaseModel):
     peak_gpu_reserved_mb: Optional[float] = None
     model_weight_mb: Optional[float] = None
     perplexity: Optional[float] = None
+    energy_j: Optional[float] = None
     extra: Dict[str, Any] = Field(default_factory=dict)
 
 

@@ -1,0 +1,29 @@
+{
+  "n_measured": 8,
+  "device": "mps",
+  "model_id": "gpt2",
+  "run": "2026-08-25T17:55Z user venv rerun",
+  "note": "Leave-one-out ridge on the 8 measured search rows from this rerun.",
+  "variants": {
+    "full": {
+      "p95_latency_ms": {"mae": 9.21, "rmse": 10.54, "r2": 0.861},
+      "tokens_per_sec": {"mae": 8.90, "rmse": 9.87, "r2": 0.512},
+      "memory_mb": {"mae": 2.43, "rmse": 2.98, "r2": 0.9995}
+    },
+    "no_hardware": {
+      "p95_latency_ms": {"r2": 0.861},
+      "tokens_per_sec": {"r2": 0.512},
+      "memory_mb": {"r2": 0.9995}
+    },
+    "no_quantization": {
+      "p95_latency_ms": {"r2": 0.837},
+      "tokens_per_sec": {"mae": 19.70, "r2": -1.26},
+      "memory_mb": {"mae": 218.7, "r2": -1.52}
+    },
+    "no_workload": {
+      "p95_latency_ms": {"mae": 36.40, "r2": -0.72},
+      "tokens_per_sec": {"r2": 0.581},
+      "memory_mb": {"r2": 0.983}
+    }
+  }
+}

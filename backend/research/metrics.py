@@ -15,15 +15,25 @@ def percentile_stats(values: Sequence[float]) -> Optional[PercentileStats]:
     if not clean:
         return None
     arr = np.asarray(clean, dtype=np.float64)
+    mean = float(arr.mean())
+    n = int(arr.size)
+    ci95_low = None
+    ci95_high = None
+    if n >= 2:
+        se = float(arr.std(ddof=1) / np.sqrt(n))
+        ci95_low = mean - 1.96 * se
+        ci95_high = mean + 1.96 * se
     return PercentileStats(
-        n=int(arr.size),
-        mean=float(arr.mean()),
+        n=n,
+        mean=mean,
         std=float(arr.std(ddof=0)),
         min=float(arr.min()),
         p50=float(np.percentile(arr, 50)),
         p95=float(np.percentile(arr, 95)),
         p99=float(np.percentile(arr, 99)),
         max=float(arr.max()),
+        ci95_low=ci95_low,
+        ci95_high=ci95_high,
     )
 
 

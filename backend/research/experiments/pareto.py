@@ -117,3 +117,42 @@ def pareto_front(
                 }
             )
     return front
+
+
+def hypervolume_throughput_memory(
+    records: Iterable[ExperimentRecord],
+    *,
+    ref_memory: Optional[float] = None,
+    ref_tps: float = 0.0,
+) -> Optional[float]:
+    """2-D hypervolume: minimize memory, maximize tokens/s. Measured rows only."""
+    pts: List[Tuple[float, float]] = []
+    for rec in records:
+        if rec.status != Status.MEASURED:
+            continue
+        mem = _value(rec, "memory_mb")
+        tps = _value(rec, "tokens_per_sec")
+        if mem is None or tps is None:
+            continue
+        pts.append((float(mem), float(tps)))
+    if not pts:
+        return None
+    # Keep only Pareto points in this 2-D plane
+    nd = []
+    for i, p in enumerate(pts):
+        dominated = False
+        for j, q in enumerate(pts):
+            if i == j:
+                continue
+            if q[0] <= p[0] and q[1] >= p[1] and (q[0] < p[0] or q[1] > p[1]):
+                dominated = True
+                break
+        if not dominated:
+            nd.append(p)
+    nd.sort(key=lambda t: t[0])
+    xmax = ref_memory if ref_memory is not None else max(p[0] for p in nd) * 1.1 + 1.0
+    hv = 0.0
+    for i, (x, y) in enumerate(nd):
+        next_x = nd[i + 1][0] if i + 1 < len(nd) else xmax
+        hv += max(next_x - x, 0.0) * max(y - ref_tps, 0.0)
+    return float(hv)

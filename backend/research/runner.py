@@ -13,9 +13,11 @@ from research.experiments.kv_cache import run_kv_cache_suite
 from research.experiments.pareto import pareto_front
 from research.experiments.quantization import run_quantization_suite
 from research.experiments.speculative import run_speculative_suite
+from research.optimizer import run_search_study, serialize_study
+from research.predictor import ablation_study
 from research.schema import ExperimentRecord
 from research.storage import ResultStore
-from research.viz import plot_suite
+from research.viz import plot_ablation, plot_search_study, plot_suite
 
 
 def load_config(path: Union[str, Path]) -> Dict[str, Any]:
@@ -50,6 +52,7 @@ def run_config(
     runs = int(config.get("measure_runs", 3))
     store = ResultStore(results_dir or config.get("results_dir"))
     records: List[ExperimentRecord] = []
+    plots: List[str] = []
 
     experiments = config.get("experiments") or [{"type": "quantization"}]
     for spec in experiments:
@@ -118,14 +121,37 @@ def run_config(
                     seed=seed,
                 )
             )
+        elif kind in {"search", "optimize", "optimizer"}:
+            study = run_search_study(
+                {
+                    **config,
+                    **{k: spec.get(k) for k in ("budget", "strategies", "search_space") if spec.get(k) is not None},
+                }
+            )
+            grid_payload = (study.get("strategies") or {}).get("grid") or {}
+            records.extend(grid_payload.get("records") or [])
+            store.root.mkdir(parents=True, exist_ok=True)
+            import json as _json
+
+            (store.root / "search_study.json").write_text(
+                _json.dumps(serialize_study(study), indent=2, default=str),
+                encoding="utf-8",
+            )
+            if make_plots:
+                plots.extend(str(p) for p in plot_search_study(study, store.root / "figures"))
+                measured = [r for r in records if r.status.value == "measured"]
+                if len(measured) >= 3:
+                    plots.extend(str(p) for p in plot_ablation(ablation_study(measured), store.root / "figures"))
         else:
             raise ValueError(f"unknown experiment type: {kind}")
 
     store.save_many(records)
     bundle = store.write_bundle(records, name=config.get("name") or "suite")
-    plots: List[str] = []
     if make_plots:
-        plots = [str(p) for p in plot_suite(records, store.root / "figures", title_suffix=config.get("name") or "")]
+        plots.extend(
+            str(p)
+            for p in plot_suite(records, store.root / "figures", title_suffix=config.get("name") or "")
+        )
     front = pareto_front(records)
     return {
         "config_name": config.get("name"),

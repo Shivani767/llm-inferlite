@@ -7,7 +7,7 @@ def test_cli_help_and_capabilities():
     runner = CliRunner()
     help_result = runner.invoke(cli, ["--help"])
     assert help_result.exit_code == 0
-    for cmd in ("env", "capabilities", "bench", "quant", "kv-cache", "speculative", "batching", "pareto", "suite"):
+    for cmd in ("env", "capabilities", "bench", "quant", "kv-cache", "speculative", "batching", "pareto", "suite", "optimize", "predict"):
         assert cmd in help_result.output
 
     cap = runner.invoke(cli, ["capabilities"])

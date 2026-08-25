@@ -1,24 +1,27 @@
 # InferLite architecture
 
-Measurement-first inference research: capability probing, wall-clock metrics, and explicit `unsupported` labels. FastAPI remains as a control plane; it no longer emits simulated Llama-3-8B scores.
+Measurement-first inference research: capability probing, wall-clock metrics, explicit `unsupported` labels, multi-objective search, and a ridge predictor that is only fit on measured rows.
 
 ## Research data plane
 
 ```
-configs/*.yaml  →  research.runner  →  experiment modules  →  JSON/CSV + figures
-                                      ↘ research.engine (TTFT, TPS, percentiles, load, memory, env)
+configs/*.yaml
+  → research.runner
+      → engine (TTFT, TPS, percentiles, CI, load, memory)
+      → search (grid / random / heuristic / InferLite)
+      → predictor + ablation
+      → JSON/CSV + figures
 ```
 
-Published MacBook MPS study: [`docs/results/macbook_mps_gpt2/`](../results/macbook_mps_gpt2/).
+**Simulation is separate:** `services.simulator` / `python -m research simulate` is a Poisson queueing model. It is not an LLM benchmark.
 
-## Control plane
+## Published studies
 
-FastAPI + optional SQLite/Postgres registry, experiment tracker, Celery/Redis, Prometheus.
-
-## Not a model benchmark
-
-`services.simulator` is a Poisson-arrival queueing model for capacity planning. CLI and API docs label it as simulation.
+- MacBook MPS GPT-2 measurement suite: [`docs/results/macbook_mps_gpt2/`](../results/macbook_mps_gpt2/)
+- Colab T4 TinyLlama lite: [`docs/results/colab_t4_lite/`](../results/colab_t4_lite/)
+- MPS search vs baselines: [`docs/results/optimizer_macbook/`](../results/optimizer_macbook/)
+- Paper: [`docs/paper.md`](../paper.md)
 
 ## Honesty rule
 
-Missing library, GPU, or checkpoint → `status=unsupported`, null metrics, recorded reason.
+Missing library, GPU, or checkpoint → `status=unsupported`, null metrics, recorded reason. Predicted values are tagged as predictions and are never written as `status=measured`.

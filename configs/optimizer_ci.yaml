@@ -1,0 +1,16 @@
+name: optimizer_ci
+seed: 42
+model_id: in-memory-tiny
+warmup_runs: 0
+measure_runs: 1
+budget: 3
+results_dir: results/optimizer_ci
+search_space:
+  methods: [fp32]
+  context_tokens: [8, 16]
+  max_new_tokens: [2, 4]
+  batch_sizes: [1]
+  skip_unsupported: true
+strategies: [grid, random, heuristic, inferlite]
+experiments:
+  - type: search

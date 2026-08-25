@@ -213,3 +213,62 @@ def plot_suite(
         written.append(path)
 
     return written
+
+
+def plot_search_study(study: dict, output_dir) -> List[Path]:
+    """Bar charts for optimizer baselines. Uses only measured hypervolumes."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    rows = study.get("comparison") or []
+    if not rows:
+        return []
+    names = [r["strategy"] for r in rows]
+    evals = [r.get("n_evaluated") or 0 for r in rows]
+    hvs = [r.get("hv_vs_grid") if r.get("hv_vs_grid") is not None else 0 for r in rows]
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2))
+    axes[0].bar(names, evals, color="#2c5f8a")
+    axes[0].set_ylabel("wall-clock evaluations")
+    axes[0].set_title("Measurement budget")
+    axes[1].bar(names, hvs, color="#8a3c2c")
+    axes[1].set_ylabel("hypervolume / grid")
+    axes[1].set_title("Throughput–memory HV vs exhaustive grid")
+    fig.suptitle("InferLite search vs baselines (measured only)")
+    fig.tight_layout()
+    path = output / "search_vs_baselines.png"
+    fig.savefig(path, dpi=160)
+    fig.savefig(path.with_suffix(".pdf"))
+    plt.close(fig)
+    return [path]
+
+
+def plot_ablation(report: dict, output_dir) -> List[Path]:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    variants = report.get("variants") or {}
+    if not variants:
+        return []
+    names, r2s = [], []
+    for name, payload in variants.items():
+        tps = ((payload.get("targets") or {}).get("tokens_per_sec") or {})
+        names.append(name)
+        r2s.append(tps.get("r2") if tps.get("r2") is not None else 0.0)
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.bar(names, r2s, color="#2c8a5f")
+    ax.set_ylabel("leave-one-out R² (tokens/s)")
+    ax.set_title("Predictor ablation (measured rows only)")
+    ax.axhline(0, color="#888", linewidth=0.8)
+    fig.tight_layout()
+    path = output / "predictor_ablation.png"
+    fig.savefig(path, dpi=160)
+    plt.close(fig)
+    return [path]
