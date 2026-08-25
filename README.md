@@ -1,224 +1,154 @@
 # InferLite
 
-**A measurement-first research toolkit for LLM inference on a laptop and free Colab GPUs.**
+Wall-clock LLM inference measurements on the hardware you have — a MacBook (Apple MPS) and free Colab GPUs. Methods that cannot run are recorded as **unsupported** with a reason. Metrics are left empty. Nothing is simulated.
 
-InferLite records wall-clock inference metrics on the machine you actually have. It does not interpolate TensorRT-LLM, vLLM, AWQ, or MMLU numbers for hardware that is not present.
+This page reports one completed run: **GPT-2 / DistilGPT-2**, Apple Silicon **MPS**, 2026-08-25. It is not a Llama-3-8B or TensorRT-LLM result.
 
-> Status vocabulary: **measured** (timings from this run) · **unsupported** (cannot run here; reason recorded; metrics left null) · **error** (attempted and failed). Unsupported rows are never scored.
+**measured** — timed on this machine · **unsupported** — did not run; not scored · **error** — attempted and failed
 
-This README reports a completed study on **GPT-2 / DistilGPT-2**, Apple Silicon **MPS**, 2026-08-25. It is not a Llama-3-8B result.
-
----
-
-## Abstract
-
-Inference papers often mix kernel-level claims (AWQ, GPTQ, PagedAttention, speculative decoding) with numbers collected on datacenter GPUs. Practitioners on a MacBook or a free T4 cannot reproduce those tables, and many public “research platforms” fill the gap with simulated profiles.
-
-InferLite asks a narrower question: **on this device, which inference techniques can be executed, and what are the measured trade-offs among those that can?**
-
-On a MacBook Air (arm64, PyTorch 2.13, MPS) running `configs/macbook_cpu.yaml`:
-
-- **19 / 29** experiments were **measured**; **10** were **unsupported**; **0** errors.
-- **FP16 vs FP32** on Hugging Face GPT-2: **+45% tokens/s** (211 vs 146) and **−32% P95 e2e latency** (118 vs 175 ms).
-- **PyTorch dynamic INT8, bitsandbytes INT8/INT4, AWQ, GPTQ, GGUF, vLLM PagedAttention, SmoothQuant, SqueezeLLM, BF16** did not run. They are listed with reasons, not guessed TPS.
-- **Greedy speculative decoding** (GPT-2 target, DistilGPT-2 draft) accepted **68–75%** of draft tokens but was **slower** than autoregressive decode (0.47–0.60×). High acceptance is not sufficient when the verify loop is a Python/eager implementation on MPS.
-- **KV cache on** (`use_cache=True`) outperforms recompute (`no_cache`) on end-to-end decode. A “sliding window” point appears on the Pareto front only because the prompt is **truncated**; it is not Mistral sliding-window attention.
-
-Raw CSV, JSON, and figures: [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/).
+Artifacts: [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/)
 
 ---
 
-## Research questions
+## Logic
 
-1. Which quantization and runtime methods are *executable* on Apple MPS versus CUDA Colab, without silent fallbacks?
-2. For executable methods, what are TTFT, tokens/s, P50/P95/P99, RSS, and load time under a fixed protocol?
-3. Does KV-cache reuse, greedy speculative decoding, or in-process continuous batching improve wall-clock decode on this stack?
-4. What is the Pareto front among **measured** (latency, memory, throughput) points only?
+Published inference tables often assume CUDA kernels (AWQ, GPTQ, bitsandbytes, vLLM, TensorRT-LLM). Those stacks are not present on a typical MacBook. InferLite therefore **probes the machine first**, then times only what loads.
+
+Each timed generation uses a prefill/decode loop:
+
+- **TTFT** — wall time of the first forward (prefill → first token)
+- **Inter-token latency** — each later decode step
+- **Tokens/s** — completion tokens / end-to-end wall time
+- **P50 / P95 / P99** — percentiles over measured runs
+- **Memory** — process RSS on MPS (no CUDA allocator API)
+- **Load time** — `from_pretrained` through a ready model
+
+Decode is greedy (`temperature=0`), seed 42, warmup discarded, then N timed runs. Environment (OS, CPU, PyTorch, MPS/CUDA, package versions) is stored with every record.
+
+Pareto uses **measured** rows only: minimize P95 latency and RSS, maximize tokens/s. Unsupported rows never enter the front.
 
 ---
 
-## Contributions
+## Setup (this run)
 
-- A **capability matrix** that probes libraries and devices before timing (`python -m research capabilities`).
-- A **benchmark engine** with a prefill/decode loop: TTFT = first forward; inter-token times = subsequent steps; tokens/s = completion tokens / wall time.
-- Experiment modules for quantization, KV-cache scaling, greedy speculative verification, static vs continuous batching, and Pareto filtering.
-- **JSON + CSV** records that include environment metadata (OS, CPU, Torch, CUDA/MPS, package versions, seed).
-- A **Colab notebook** (`notebooks/inferlite_colab.ipynb`) for CUDA-only methods that a MacBook cannot run.
-- An honesty rule: if a method is missing, InferLite writes `unsupported` and leaves metrics empty.
-
----
-
-## Experimental protocol
-
-| Item | Setting (this study) |
-|------|----------------------|
+| | |
+|--|--|
 | Config | `configs/macbook_cpu.yaml` |
 | Model | `gpt2` (124M); draft `distilgpt2` |
 | Device | Apple MPS (`cuda=false`) |
-| Software | Python 3.12.13, PyTorch 2.13.0 (MPS build), Transformers 5.15.1, Accelerate 1.14.0 |
-| Seed | 42; greedy decode (`temperature=0`) |
-| Warmup / measure | 1 warmup, 3 timed runs (KV/spec/batching use 2) |
+| Stack | Python 3.12.13, PyTorch 2.13.0 (MPS), Transformers 5.15.1, Accelerate 1.14.0 |
 | Prompt | `"The future of efficient language model inference is"` |
-| New tokens | 24 (quantization / speculative); 12 (KV); 8 (batching) |
-| Timing | `time.perf_counter` |
-| Memory | process RSS (MPS has no CUDA allocated-byte API) |
-| Pareto | minimize P95 e2e latency and RSS; maximize tokens/s; **measured rows only** |
-
-Reproduction:
+| New tokens | 24 (precision / speculative); 12 (KV); 8 (batching) |
+| Warmup / repeats | 1 / 3 (2 for KV, speculative, batching) |
 
 ```bash
 cd backend
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m research capabilities
 python -m research suite --config ../configs/macbook_cpu.yaml
 ```
 
 ---
 
-## Results (MacBook MPS, 2026-08-25)
+## Results
 
-### Quantization / precision
+**29 records: 19 measured, 10 unsupported, 0 errors.**
 
-Only methods that loaded and generated are scored.
+### Precision
 
-| Method | Status | Tokens/s (mean) | P95 e2e (ms) | TTFT mean (ms) | Peak RSS (MB) | Weight (MB) |
-|--------|--------|-----------------|--------------|----------------|---------------|-------------|
+On MPS, the only dense GPT-2 variants that generated were FP32 and FP16. FP16 halved stored weights (475 → 237 MB), raised throughput **146 → 211 tok/s** (+45%), and cut P95 e2e **175 → 118 ms** (−32%). RSS went **up** (761 → 1064 MB); that is process footprint, not a CUDA `max_memory_allocated` curve.
+
+| Method | Status | tok/s | P95 e2e (ms) | TTFT (ms) | RSS (MB) | Weights (MB) |
+|--------|--------|------:|-------------:|----------:|---------:|-------------:|
 | FP32 | measured | 145.8 | 174.8 | 2.16 | 761 | 475 |
 | FP16 | measured | 211.2 | 118.3 | 2.43 | 1064 | 237 |
-| BF16 | unsupported | — | — | — | — | CUDA required |
-| Dynamic INT8 | unsupported | — | — | — | — | `quantized::linear_prepack` engine missing on this PyTorch/Mac build |
-| bitsandbytes INT8/INT4 | unsupported | — | — | — | — | CUDA + bitsandbytes |
-| AWQ / GPTQ | unsupported | — | — | — | — | CUDA + autoawq / auto-gptq or a pre-quantized checkpoint |
+| BF16 | unsupported | — | — | — | — | needs CUDA |
+| Dynamic INT8 | unsupported | — | — | — | — | no `linear_prepack` engine on this Mac PyTorch build |
+| bitsandbytes INT8 / INT4 | unsupported | — | — | — | — | CUDA + bitsandbytes |
+| AWQ / GPTQ | unsupported | — | — | — | — | CUDA + autoawq / auto-gptq (or a pre-quantized checkpoint) |
 | GGUF Q4_K_M | unsupported | — | — | — | — | `llama-cpp-python` not installed |
-| SmoothQuant / SqueezeLLM | unsupported | — | — | — | — | not bundled; no fallback scores |
+| SmoothQuant / SqueezeLLM | unsupported | — | — | — | — | not implemented; no fallback numbers |
 
-FP16 is the only measured compression of the dense GPT-2 weights on MPS in this run (halved `model_weight_mb`). RSS rose versus FP32; treat RSS as process footprint, not a CUDA allocator curve.
+INT8/INT4/AWQ/GPTQ/GGUF are **absent from the comparison**, not ranked last. Ranking them would require a CUDA (or llama.cpp) run.
 
-![Precision: throughput and P95 latency](docs/results/macbook_mps_gpt2/figures/quantization_comparison.png)
+![FP32 vs FP16 throughput and P95](docs/results/macbook_mps_gpt2/figures/quantization_comparison.png)
 
-![Methods that were not scored](docs/results/macbook_mps_gpt2/figures/unsupported_experiments.png)
+![Unsupported methods (not scored)](docs/results/macbook_mps_gpt2/figures/unsupported_experiments.png)
 
-### KV-cache scaling (context 32 / 64 / 128)
+### KV cache (context 32, 64, 128)
 
-| Strategy | What we actually ran |
-|----------|----------------------|
+| Name in the logs | Implementation |
+|------------------|----------------|
 | `dynamic` | Hugging Face `use_cache=True` |
-| `no_cache` | recompute full prefix each step |
-| `sliding_window` | **prompt truncation** to a fixed window (not a fused SWA kernel) |
-| `prefix` | second forward that consumes `past_key_values` |
-| `paged_attention` | unsupported (vLLM not present) |
+| `no_cache` | recompute the prefix every step |
+| `sliding_window` | **truncate the prompt** (not fused sliding-window attention) |
+| `prefix` | second forward using `past_key_values` |
+| `paged_attention` | unsupported — vLLM not installed |
 
-With cache enabled, e2e latency stays in a band as context grows 32→128 (dynamic P95 298→337 ms). Disabling the cache inflates decode time (no_cache P95 up to ~1.0 s at 64 tokens). Sliding-window rows look fast because the **effective prompt is shorter**, so they are not comparable to full-context `dynamic`.
+With the cache on, decode stays in a band as context grows (dynamic P95 298 → 337 ms from 32 → 128 tokens). Turning the cache off makes decode expensive (no_cache P95 ~1.0 s at 64 tokens). Sliding-window rows are faster because the **prompt is shorter**, so they are not a KV-algorithm win against full-context `dynamic`.
 
-![KV memory and TTFT vs context length](docs/results/macbook_mps_gpt2/figures/kv_cache_scaling.png)
+![KV RSS and TTFT vs context](docs/results/macbook_mps_gpt2/figures/kv_cache_scaling.png)
 
 ### Speculative decoding
 
-Greedy draft–target verification, shared GPT-2 tokenizer family.
+Greedy draft–target verification, same tokenizer family (GPT-2 / DistilGPT-2).
 
-| Method | Tokens/s | Draft acceptance | Speedup vs measured baseline |
-|--------|----------|------------------|------------------------------|
-| Baseline (target only) | 164.0 | — | 1.00× |
-| γ = 2 | 77.4 | 0.75 | **0.47×** |
-| γ = 4 | 98.2 | 0.68 | **0.60×** |
+| | tok/s | Draft accepted | vs baseline |
+|--|------:|---------------:|------------:|
+| Target only | 164.0 | — | 1.00× |
+| γ = 2 | 77.4 | 0.75 | 0.47× |
+| γ = 4 | 98.2 | 0.68 | 0.60× |
 
-Acceptance is healthy; wall-clock speedup is not. On MPS, two eager models plus a Python verify loop cost more than they save at these sequence lengths. That is a measurement, not a claim that speculative decoding “does not work” in vLLM/TRT-LLM.
+Draft tokens matched the target often. Wall-clock still lost: two eager models and a Python verify loop on MPS cost more than they save at 24 new tokens. That is this implementation on this device — not a statement about fused speculative engines.
 
-![Speculative throughput and acceptance](docs/results/macbook_mps_gpt2/figures/speculative_decoding.png)
+![Speculative tok/s and acceptance](docs/results/macbook_mps_gpt2/figures/speculative_decoding.png)
 
-### Continuous batching
+### Batching
 
-In-process scheduler versus `model.generate()` static batch (4 requests, max batch 2, 8 new tokens). Static batch: 53.1 tok/s wall-clock; continuous: 41.4 tok/s. This is **not** vLLM continuous batching. Decoder-only right-padding was flagged by Transformers; timings remain wall-clock but generation quality for padded batches should use `padding_side='left'` in a follow-up.
+Four requests, max batch 2, 8 new tokens. `model.generate()` static batch: **53.1 tok/s**. In-process continuous scheduler: **41.4 tok/s**. This is not vLLM continuous batching. Transformers warned about right-padding on a decoder-only model; clocks are still valid, but a later run should set `padding_side='left'`.
 
-### Pareto front (measured only)
+### Pareto (measured rows only)
 
-Objectives: min P95 latency, min RSS, max tokens/s.
-
-| Point | Why it sits on the front |
-|-------|--------------------------|
-| FP32 | lowest RSS among scored dense runs |
-| FP16 | higher tokens/s than FP32, lower P95 |
-| `sliding_window` @ 64 | highest tokens/s — **excluded from any “best KV method” claim**; truncated prompt |
-
-`no_cache` and full-context `dynamic` points are dominated on this plot. Do not report sliding-window as a production KV optimizer from this figure.
+FP32 (lowest RSS), FP16 (better tok/s and P95), and sliding-window @ 64 (highest tok/s). The last point is **not** a recommended KV strategy — truncated prompt. `no_cache` and full-context `dynamic` are dominated on this plot.
 
 ![Throughput–memory Pareto](docs/results/macbook_mps_gpt2/figures/pareto_throughput_memory.png)
 
 ---
 
-## What this study does *not* show
+## Reading the numbers
 
-- Llama-3-8B, MMLU, GSM8K, or HumanEval (those evals are labeled unsupported; scores are never invented).
-- TensorRT-LLM, vLLM throughput, or datacenter GPU ranking.
-- That AWQ/GPTQ/GGUF are “worse” on a Mac — they **did not run**.
-- That speculative decoding cannot win with fused kernels or a cheaper draft.
+On this MacBook, the working dense path is **Hugging Face + MPS**, and **FP16 is the measured win over FP32**. Kernel quantization and vLLM did not execute, so they have no TPS here. Speculative decoding showed that **acceptance rate ≠ speedup** when the verify path is unfused. KV cache vs recompute behaves as expected; do not cite sliding-window from this suite as production PagedAttention.
 
-CUDA follow-up: `notebooks/inferlite_colab.ipynb` + `configs/colab_t4.yaml` (TinyLlama 1.1B). Optional Mac GGUF: `pip install llama-cpp-python` and set `gguf_repo` / `gguf_file`.
+CUDA / Colab (TinyLlama): `notebooks/inferlite_colab.ipynb` and `configs/colab_t4.yaml`. Optional GGUF on Mac: `pip install llama-cpp-python` and set `gguf_repo` / `gguf_file`. Do not mix Colab T4 numbers with this MPS table without labeling both environments.
 
 ---
 
-## Architecture
+## Code
 
 ```
-CLI / Colab / FastAPI
-        │
-        ▼
- research.runner  ← YAML/JSON configs
-        │
-        ├── engine          TTFT, TPS, P50/P95/P99, load, RSS/CUDA memory, env
-        ├── quantization    FP32/FP16/BF16, dynamic INT8, bnb, AWQ, GPTQ, GGUF
-        ├── kv_cache        context sweep, prefix reuse, truncated window
-        ├── speculative     greedy draft–target verification
-        ├── batching        static generate() vs in-process continuous batch
-        └── pareto          measured rows only
-        │
-        ▼
- JSON + CSV                 PNG/PDF figures
+configs/*.yaml  →  research.runner  →  engine + experiments  →  JSON/CSV + figures
 ```
 
-The FastAPI registry, ONNX lab, and **serving-queue simulator** remain. The simulator is Poisson-arrival capacity planning, not a model benchmark.
-
-| Path | Role |
-|------|------|
-| `backend/research/` | measurement core |
-| `configs/` | experiment YAML |
-| `notebooks/inferlite_colab.ipynb` | CUDA / Colab T4 |
-| `docs/results/macbook_mps_gpt2/` | this study’s artifacts |
-| `backend/tests/` | offline tiny-GPT-2 tests (no Hub download) |
+The engine records TTFT, tokens/s, percentiles, load time, RSS/CUDA memory, and environment. Experiments: precision/quantization, KV sweep, greedy speculative verify, static vs continuous batch, Pareto. FastAPI, ONNX lab, and a **queueing simulator** (capacity planning, not a model benchmark) are still in the tree.
 
 ```bash
-python -m research env
+python -m research capabilities
 python -m research bench --model gpt2 --method fp16
-python -m pytest   # from backend/
+cd backend && python -m pytest   # in-memory tiny GPT-2, no Hub download
 ```
 
 ---
 
-## Limitations
+## Limits of this run
 
-- Apple MPS memory is RSS, not `torch.cuda.max_memory_allocated`.
-- Dynamic INT8 is `torch.quantization.quantize_dynamic` on `nn.Linear`, and it failed on this Mac build.
-- Sliding-window KV is prompt truncation.
-- Continuous batching is a research scheduler, not vLLM.
-- Speculative decoding is greedy and Python-side.
-- AWQ/GPTQ *conversion* is not a one-click calibrator; loading a pre-quantized checkpoint is attempted when CUDA libraries exist.
-- Free Colab T4 is a different device class; do not pool those numbers with this MPS table without labeling both environments.
-
----
-
-## Citation
-
-If you use InferLite or these numbers, cite the repository and the environment row (device, PyTorch, model, date). Do not cite this README as a Llama-3-8B or TensorRT-LLM result.
+MPS memory is RSS. Dynamic INT8 failed on this PyTorch build. Sliding-window is truncation. Continuous batching and speculative decode are research loops, not vLLM/TRT-LLM. AWQ/GPTQ conversion is not a calibrator here. MMLU / GSM8K / HumanEval were not run and are not invented.
 
 ```
 @software{inferlite2026,
-  title  = {InferLite: measurement-first LLM inference research},
-  year   = {2026},
-  url    = {https://github.com/Shivani767/llm-inferlite}
+  title = {InferLite},
+  year  = {2026},
+  url   = {https://github.com/Shivani767/llm-inferlite}
 }
 ```
-
-## License
 
 Apache License 2.0
