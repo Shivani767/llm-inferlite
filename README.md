@@ -42,7 +42,7 @@ If the venv is missing: `python3.12 -m venv .venv && source .venv/bin/activate &
 
 Without activating: `.venv/bin/python -m research optimize --config ../configs/optimizer_macbook.yaml`
 
-Colab T4: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) — install **only** `backend/requirements-colab.txt`. After a RAM crash, delete the runtime and skip the lite suite; search is two unique TinyLlama loads. llama.cpp is a separate GGUF cell (prebuilt wheel + TinyLlama Q4_K_M).
+Colab T4: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) — install **only** `backend/requirements-colab.txt`. Measured on this notebook: Hugging Face FP16/INT4 and llama.cpp TinyLlama Q4_K_M. After a RAM crash, skip the lite suite; search is two unique TinyLlama loads.
 
 ## Architecture
 
@@ -54,17 +54,27 @@ More detail: [`docs/architecture/system_overview.md`](docs/architecture/system_o
 
 ## Experimental results
 
-Four completed **measured** studies. Different models and backends — do not stack the tables.
+Four **measured** studies are published. The Colab T4 search vs baselines cell has not been published yet — do not copy Mac GPT-2 hypervolume into a T4 table.
 
 | Study | Model | Device | Artifacts |
 |-------|-------|--------|-----------|
 | Measurement suite | GPT-2 / DistilGPT-2 | MacBook MPS | [`docs/results/macbook_mps_gpt2/`](docs/results/macbook_mps_gpt2/) |
-| T4 lite | TinyLlama 1.1B | Colab Tesla T4 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
+| T4 lite (Hugging Face) | TinyLlama 1.1B | Colab Tesla T4 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
 | T4 llama.cpp | TinyLlama 1.1B Q4_K_M | Colab Tesla T4 | [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/) |
 | Search vs baselines | GPT-2 | MacBook MPS | [`docs/results/optimizer_macbook/`](docs/results/optimizer_macbook/) |
-| Search vs baselines | TinyLlama 1.1B | Colab T4 | Run the search cells in `notebooks/inferlite_colab.ipynb` → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
+| Search vs baselines | TinyLlama 1.1B | Colab T4 | Not published — run `notebooks/inferlite_colab.ipynb` → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
 
 Llama-3, Mistral, and Qwen 7B+ were not timed. TinyLlama is the Llama-family model that fits a free T4.
+
+**Same T4, TinyLlama 1.1B, 16 new tokens.** Different backends — throughput is comparable; memory is not.
+
+| Backend | Method | tok/s | P95 e2e (ms) | Memory |
+|---------|--------|------:|-------------:|--------|
+| llama.cpp | GGUF Q4_K_M | **172.5** | **105.8** | 9.125 MB engine snapshot, **not** llama.cpp VRAM |
+| Hugging Face | FP16 | 35.0 | 468 | 2108 MB CUDA |
+| Hugging Face | INT4 NF4 (bitsandbytes) | 15.3 | 1057 | 803 MB CUDA |
+
+llama.cpp used `llama-cpp-python` 0.3.35 (CUDA 12.4 wheel) and `n_gpu_layers=-1`. Hugging Face INT4 uses less CUDA memory than FP16. Do not plot 172 tok/s on the bitsandbytes Pareto figure.
 
 ### 1. MacBook MPS / GPT-2 (measurement suite)
 
@@ -87,19 +97,17 @@ KV cache, speculative decoding, and batching clocks: [`docs/results/macbook_mps_
 | FP16 | 35.0 | 468 | 2108 |
 | INT4 NF4 (bitsandbytes) | 15.3 | 1057 | 803 |
 
-INT8 was measured and dominated (~3 tok/s on the figure). A bar labeled `gptq` loaded **dense** TinyLlama and is not cited as GPTQ. AWQ/SmoothQuant/SqueezeLLM unsupported. GGUF was unsupported in this suite (`llama_cpp` missing) and was timed later with llama.cpp.
+INT8 was measured and dominated (~3 tok/s on the figure). A bar labeled `gptq` loaded **dense** TinyLlama and is not cited as GPTQ. AWQ/SmoothQuant/SqueezeLLM unsupported. GGUF was unsupported in this suite (`llama_cpp` missing) and was timed later with llama.cpp (section 3).
 
 ### 3. Colab Tesla T4 / llama.cpp GGUF (TinyLlama Q4_K_M)
 
-**1 measured, 0 unsupported, 0 error.** Same 16-new-token workload as the lite suite. `llama-cpp-python` 0.3.35, CUDA 12.4 wheel, `n_gpu_layers=-1`.
+**1 measured, 0 unsupported, 0 error.** Same 16-new-token workload as the lite suite.
 
 | Method | tok/s | P95 e2e (ms) | Engine mem snapshot (MB) |
 |--------|------:|-------------:|-------------------------:|
 | GGUF Q4_K_M | 172.5 | 105.8 | 9.125 |
 
-This is **llama.cpp**, not Hugging Face. 9.125 MB is the engine’s PyTorch/RSS snapshot, not llama.cpp VRAM. Do not put 172 tok/s on the bitsandbytes Pareto plot without labeling the backend.
-
-Full stdout: [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/).
+`llama-cpp-python` 0.3.35, CUDA 12.4 wheel, `n_gpu_layers=-1`. This is **llama.cpp**, not Hugging Face. Full stdout: [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/).
 
 ### 4. Search vs baselines (same Mac, GPT-2, 8-config space)
 
