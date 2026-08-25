@@ -1,0 +1,28 @@
+{
+  "name": "optimizer_colab_t4",
+  "date_utc": "2026-08-25",
+  "config": "configs/optimizer_colab_t4.yaml",
+  "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "device": "cuda",
+  "gpu": {"name": "Tesla T4", "host": "Google Colab"},
+  "available_ram_gib_at_start": 10.9,
+  "warmup_runs": 0,
+  "measure_runs": 1,
+  "n_search_space": 4,
+  "inferlite_budget": 2,
+  "counts": {"measured": 4, "unsupported": 0, "error": 0},
+  "source": "notebook stdout from notebooks/inferlite_colab.ipynb T4 search cells; engine CSV remained on the Colab VM",
+  "grid_rows": [
+    {"key": "fp16|c32|n8|b1", "status": "measured", "tokens_per_sec": 6.124797905211907, "p95_latency_ms": 1306.1655459998747, "memory_mb": 2110.056, "note": "first generate after load; warmup_runs=0"},
+    {"key": "fp16|c64|n8|b1", "status": "measured", "tokens_per_sec": 31.82391661453072, "p95_latency_ms": 251.3832629999797, "memory_mb": 2113.514},
+    {"key": "int4_bnb|c32|n8|b1", "status": "measured", "tokens_per_sec": 18.716541214256274, "p95_latency_ms": 427.42940099992666, "memory_mb": 804.256},
+    {"key": "int4_bnb|c64|n8|b1", "status": "measured", "tokens_per_sec": 15.370143212461114, "p95_latency_ms": 520.4896200000348, "memory_mb": 826.646}
+  ],
+  "comparison": [
+    {"strategy": "grid", "n_evaluated": 4, "n_measured": 4, "hypervolume": 31262.634563673604, "hv_vs_grid": 1.0, "simulation": false},
+    {"strategy": "random", "n_evaluated": 2, "n_measured": 2, "hypervolume": 1285.936883813275, "hv_vs_grid": 0.04113334982034756, "simulation": false},
+    {"strategy": "heuristic", "n_evaluated": 1, "n_measured": 1, "hypervolume": 6757.853246578859, "hv_vs_grid": 0.21616390751761258, "simulation": false},
+    {"strategy": "inferlite", "n_evaluated": 2, "n_measured": 2, "hypervolume": 26537.19870211227, "hv_vs_grid": 0.8488471644340502, "simulation": false}
+  ],
+  "simulation": false
+}

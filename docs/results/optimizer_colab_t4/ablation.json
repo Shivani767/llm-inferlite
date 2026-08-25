@@ -1,0 +1,28 @@
+{
+  "n_measured": 4,
+  "device": "cuda",
+  "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "note": "Leave-one-out ridge on the 4 measured T4 search rows. Negative R² means worse than predicting the mean. n=4 includes a cold-start FP16-c32 point (warmup_runs=0).",
+  "variants": {
+    "full": {
+      "p95_latency_ms": {"n": 4, "mae": 1118.4568044978378, "rmse": 1118.6387736869121, "r2": -6.659095535766684},
+      "tokens_per_sec": {"n": 4, "mae": 28.301927964069215, "rmse": 28.305735608295, "r2": -8.438537105852872},
+      "memory_mb": {"n": 4, "mae": 18.44732547005026, "rmse": 22.32849972380415, "r2": 0.9988134694183929}
+    },
+    "no_hardware": {
+      "p95_latency_ms": {"r2": -6.659095535766674},
+      "tokens_per_sec": {"r2": -8.438537105852772},
+      "memory_mb": {"r2": 0.9988134694183924}
+    },
+    "no_quantization": {
+      "p95_latency_ms": {"r2": -1.531182799187086},
+      "tokens_per_sec": {"r2": -1.476161110334933},
+      "memory_mb": {"mae": 1282.6746016209443, "r2": -2.915759553489573}
+    },
+    "no_workload": {
+      "p95_latency_ms": {"r2": -2.414323432656387},
+      "tokens_per_sec": {"r2": -2.936465770059818},
+      "memory_mb": {"r2": 0.9992937585976995}
+    }
+  }
+}

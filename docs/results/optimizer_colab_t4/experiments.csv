@@ -1,0 +1,5 @@
+candidate_key,status,method,context_tokens,max_new_tokens,tokens_per_sec_mean,e2e_ms_p95,peak_gpu_allocated_mb
+fp16|c32|n8|b1,measured,fp16,32,8,6.124797905211907,1306.1655459998747,2110.056
+fp16|c64|n8|b1,measured,fp16,64,8,31.82391661453072,251.3832629999797,2113.514
+int4_bnb|c32|n8|b1,measured,int4_bnb,32,8,18.716541214256274,427.42940099992666,804.256
+int4_bnb|c64|n8|b1,measured,int4_bnb,64,8,15.370143212461114,520.4896200000348,826.646

@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Choosing quantization, context length, and decode length for LLM inference is a multi-objective problem (latency, throughput, memory, energy, quality). Most published tables assume CUDA kernels that a laptop or free Colab GPU may not have. InferLite probes the machine, times only what loads, and labels the rest **unsupported**. On Apple MPS, GPT-2 FP16 is faster than FP32 (211 vs 146 tok/s in the measurement suite). On a Colab Tesla T4, TinyLlama Hugging Face FP16 is faster than bitsandbytes INT4, while INT4 uses less GPU memory. The same T4 later timed TinyLlama **GGUF Q4_K_M via llama.cpp** at 172.5 tok/s (P95 106 ms) after installing a CUDA 12.4 wheel — a different backend, not mixed into the bitsandbytes Pareto. An 8-point MPS search study compares exhaustive grid search to random search, a hardware heuristic, and a surrogate-assisted InferLite optimizer. On the 2026-08-25 17:55 rerun, random recovered 0.32× of grid hypervolume versus InferLite 0.30× and the heuristic 0.22× (budget 4 vs grid 8). A ridge predictor fits memory (leave-one-out R² 0.999), P95 (0.86), and tokens/s (0.51). Dropping quantization destroys memory and throughput R²; dropping workload destroys P95 R². Energy is unsupported without NVML. No simulated tokens/s are reported as measurements.
+Choosing quantization, context length, and decode length for LLM inference is a multi-objective problem (latency, throughput, memory, energy, quality). Most published tables assume CUDA kernels that a laptop or free Colab GPU may not have. InferLite probes the machine, times only what loads, and labels the rest **unsupported**. On Apple MPS, GPT-2 FP16 is faster than FP32 (211 vs 146 tok/s in the measurement suite). On a Colab Tesla T4, TinyLlama Hugging Face FP16 is faster than bitsandbytes INT4, while INT4 uses less GPU memory. The same T4 later timed TinyLlama **GGUF Q4_K_M via llama.cpp** at 172.5 tok/s (P95 106 ms) after installing a CUDA 12.4 wheel — a different backend, not mixed into the bitsandbytes Pareto. An 8-point MPS search study compares exhaustive grid search to random search, a hardware heuristic, and a surrogate-assisted InferLite optimizer. On the 2026-08-25 17:55 rerun, random recovered 0.32× of grid hypervolume versus InferLite 0.30× and the heuristic 0.22× (budget 4 vs grid 8). A separate 4-point T4 TinyLlama search (fp16/INT4 × context 32/64) gave InferLite 0.85× grid HV versus random 0.041× at budget 2; the first FP16 job had no warmup and is a cold start. A ridge predictor fits memory (leave-one-out R² 0.999), P95 (0.86), and tokens/s (0.51). Dropping quantization destroys memory and throughput R²; dropping workload destroys P95 R². Energy is unsupported without NVML. No simulated tokens/s are reported as measurements.
 
 ## Research question
 
@@ -42,6 +42,7 @@ Capability probe → load or unsupported → warmup → timed runs → Pareto ov
 | T4 lite | Colab Tesla T4 | TinyLlama 1.1B | FP16, INT8/INT4 (bnb); AWQ unsupported in that suite |
 | T4 llama.cpp | Colab Tesla T4 | TinyLlama 1.1B Q4_K_M | GGUF, `n_gpu_layers=-1`, 172.5 tok/s |
 | Search | MacBook MPS | GPT-2 | 8-config space; grid vs random vs heuristic vs InferLite |
+| Search | Colab Tesla T4 | TinyLlama 1.1B | 4-config space; InferLite 0.85× grid HV vs random 0.041× |
 
 Llama-3-8B, Mistral, and Qwen were **not** timed here. TinyLlama is the Llama-family model that fits a free T4. Larger checkpoints remain a future measured run.
 
@@ -68,6 +69,12 @@ Random slightly outperformed InferLite at the same budget. Neither reconstructed
 
 ![Search vs baselines](results/optimizer_macbook/figures/search_vs_baselines.png)
 
+### T4 TinyLlama search (4 configs, budget 2)
+
+Same protocol on a Colab Tesla T4. Grid: fp16/INT4 × context 32/64, 8 new tokens. InferLite 0.85× grid HV; random 0.041×; heuristic 0.22×. The first FP16-c32 generate had `warmup_runs=0` (6.1 tok/s vs 31.8 tok/s on the later FP16-c64 job). Leave-one-out P95/tokens/s R² are negative at n=4; memory R² is 0.999.
+
+![T4 search vs baselines](results/optimizer_colab_t4/figures/search_vs_baselines.png)
+
 ### Ablation
 
 Leave-one-out ridge on the same 8 rows.
@@ -85,11 +92,11 @@ Quantization features carry memory and throughput (FP16 vs FP32). Workload featu
 
 ## Limitations
 
-n=8 is small and search ranking is seed-sensitive. MPS RSS is not CUDA `max_memory_allocated`. llama.cpp’s 9.125 MB engine snapshot is not llama.cpp VRAM. Speculative decoding and continuous batching in the measurement suite are research loops, not vLLM. Sliding-window KV is prompt truncation. Energy, MMLU, and Llama/Mistral/Qwen 7B+ are unsupported here. The Colab GPTQ bar from an earlier session loaded dense TinyLlama and is not cited as GPTQ. A T4 search study was not run in this document.
+n=8 (MPS) and n=4 (T4) are small and search ranking is seed-sensitive. The T4 first FP16 row is a cold start (`warmup_runs=0`). MPS RSS is not CUDA `max_memory_allocated`. llama.cpp’s 9.125 MB engine snapshot is not llama.cpp VRAM. Speculative decoding and continuous batching in the measurement suite are research loops, not vLLM. Sliding-window KV is prompt truncation. Energy, MMLU, and Llama/Mistral/Qwen 7B+ are unsupported here. The Colab GPTQ bar from an earlier session loaded dense TinyLlama and is not cited as GPTQ.
 
 ## Conclusion
 
-InferLite’s contribution is an honest measurement-and-search loop: probe, time, Pareto, compare search strategies, ablate the surrogate, and refuse fake kernels. On the hardware we have, FP16 is the dense Hugging Face win, INT4 is a T4 HF memory win, llama.cpp Q4_K_M is the fastest TinyLlama clock we measured on this T4, and a half-budget surrogate does not beat random on this 8-point MPS space. The next measured step is the T4 search cells in `notebooks/inferlite_colab.ipynb` (`configs/optimizer_colab_t4.yaml`) — still without inventing scores.
+InferLite’s contribution is an honest measurement-and-search loop: probe, time, Pareto, compare search strategies, ablate the surrogate, and refuse fake kernels. On the hardware we have, FP16 is the dense Hugging Face win, INT4 is a T4 HF memory win, llama.cpp Q4_K_M is the fastest TinyLlama clock we measured on this T4, a half-budget surrogate does not beat random on the 8-point MPS space, and on the 4-point T4 space InferLite recovered 0.85× of grid hypervolume versus random 0.041×. Nothing here is simulated.
 
 ## Reproducibility commands
 

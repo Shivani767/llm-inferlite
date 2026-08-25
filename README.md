@@ -42,7 +42,7 @@ If the venv is missing: `python3.12 -m venv .venv && source .venv/bin/activate &
 
 Without activating: `.venv/bin/python -m research optimize --config ../configs/optimizer_macbook.yaml`
 
-Colab T4: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) — install **only** `backend/requirements-colab.txt`. Measured on this notebook: Hugging Face FP16/INT4 and llama.cpp TinyLlama Q4_K_M. After a RAM crash, skip the lite suite; search is two unique TinyLlama loads.
+Colab T4: [`notebooks/inferlite_colab.ipynb`](https://colab.research.google.com/github/Shivani767/llm-inferlite/blob/main/notebooks/inferlite_colab.ipynb) — install **only** `backend/requirements-colab.txt`. Measured: Hugging Face FP16/INT4, llama.cpp Q4_K_M, and T4 search vs baselines.
 
 ## Architecture
 
@@ -54,7 +54,7 @@ More detail: [`docs/architecture/system_overview.md`](docs/architecture/system_o
 
 ## Experimental results
 
-Four **measured** studies are published. T4 search vs baselines is the next Colab cell: 4 TinyLlama configs (fp16/INT4 × context 32/64), budget 2, measurement cache. Do not copy Mac GPT-2 hypervolume into a T4 table.
+Five **measured** studies are published. Different models and backends — do not stack the tables.
 
 | Study | Model | Device | Artifacts |
 |-------|-------|--------|-----------|
@@ -62,7 +62,7 @@ Four **measured** studies are published. T4 search vs baselines is the next Cola
 | T4 lite (Hugging Face) | TinyLlama 1.1B | Colab Tesla T4 | [`docs/results/colab_t4_lite/`](docs/results/colab_t4_lite/) |
 | T4 llama.cpp | TinyLlama 1.1B Q4_K_M | Colab Tesla T4 | [`docs/results/colab_t4_gguf/`](docs/results/colab_t4_gguf/) |
 | Search vs baselines | GPT-2 | MacBook MPS | [`docs/results/optimizer_macbook/`](docs/results/optimizer_macbook/) |
-| Search vs baselines | TinyLlama 1.1B | Colab T4 | **Next:** clean runtime, skip lite/GGUF, run search cells → [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
+| Search vs baselines | TinyLlama 1.1B | Colab T4 | [`docs/results/optimizer_colab_t4/`](docs/results/optimizer_colab_t4/) |
 
 Llama-3, Mistral, and Qwen 7B+ were not timed. TinyLlama is the Llama-family model that fits a free T4.
 
@@ -128,9 +128,28 @@ On this seed, random slightly beat InferLite at half the grid budget. Neither re
 
 ![Predictor ablation](docs/results/optimizer_macbook/figures/predictor_ablation.png)
 
+### 5. Search vs baselines (Colab T4, TinyLlama, 4-config space)
+
+fp16 / INT4 × context 32 / 64 × 8 new tokens. Grid: 4 measured. InferLite and random: 2 evaluations. `warmup_runs=0`, so the first FP16-c32 job is a cold start (6.1 tok/s) versus later FP16-c64 (31.8 tok/s).
+
+| Strategy | Evals | Hypervolume / grid |
+|----------|------:|-------------------:|
+| Grid | 4 | 1.00 |
+| InferLite | 2 | **0.85** |
+| Heuristic | 1 | 0.22 |
+| Random | 2 | 0.041 |
+
+On this seed InferLite beat random at the same budget. n=4 is small; the cold-start row hurts random. Do not copy these HV numbers onto the Mac GPT-2 table.
+
+![T4 search vs baselines](docs/results/optimizer_colab_t4/figures/search_vs_baselines.png)
+
+**Ablation (leave-one-out ridge, n=4):** memory R² **0.999**; P95 and tokens/s R² are negative (−6.66 / −8.44). Drop quantization and memory collapses (R² −2.92).
+
+![T4 predictor ablation](docs/results/optimizer_colab_t4/figures/predictor_ablation.png)
+
 ## Limits
 
-MPS memory is RSS. llama.cpp’s 9.125 MB engine snapshot is not llama.cpp VRAM. Search is seed-sensitive at n=8 (this rerun: random 0.32× HV vs InferLite 0.30×). Sliding-window is truncation. Speculative / continuous batching are research loops, not vLLM. Energy, MMLU, GSM8K, HumanEval, and 7B+ Llama/Mistral/Qwen are not scored here.
+MPS memory is RSS. llama.cpp’s 9.125 MB engine snapshot is not llama.cpp VRAM. Mac search is seed-sensitive at n=8 (random 0.32× HV vs InferLite 0.30×). T4 search is n=4 with a cold-start first job (InferLite 0.85× vs random 0.041×). Sliding-window is truncation. Speculative / continuous batching are research loops, not vLLM. Energy, MMLU, GSM8K, HumanEval, and 7B+ Llama/Mistral/Qwen are not scored here.
 
 ```
 @software{inferlite2026,
