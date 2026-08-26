@@ -10,7 +10,7 @@ License: Apache 2.0
 
 Selecting quantization, context length, and decode length for large language model (LLM) inference is a multi-objective problem: latency, throughput, and memory compete, and the feasible set depends on which kernels are actually installed. Published serving tables often assume CUDA stacks (vLLM, AWQ, GPTQ, TensorRT-LLM) that a laptop or free cloud GPU may not have. InferLite is a measurement-and-search framework that **probes the machine, times only configurations that load, and labels the rest `unsupported` with null metrics**. It then compares exhaustive **grid search**, **random search**, a **hardware heuristic**, and **InferLite** (a ridge surrogate with Pareto-and-diversity acquisition) on the **same** capability-filtered space.
 
-The central hypothesis is whether a hardware-aware surrogate can identify near-Pareto-optimal inference configurations using substantially fewer wall-clock evaluations than exhaustive search. We test that claim with two measured scale studies. On Apple MPS, a 40-configuration GPT-2 space (fp32/fp16 × five contexts × four decode lengths) is timed once; budgeted strategies **replay** those records across five seeds and budgets $\{2,4,8,16\}$. InferLite recovers mean hypervolume $0.86\times$ of the grid at budget 4 (10% of the space; 95% Student-$t$ CI $[0.83, 0.90]$) versus random $0.61\times$ (CI $[0.12, 1.10]$). At budget 16 both methods are $\approx 0.97\times$ and random is slightly ahead ($0.973$ vs $0.971$). On a Colab Tesla T4, a 30-configuration TinyLlama 1.1B space (fp16/INT4 × five contexts × three decode lengths, `warmup_runs=1`) shows the **opposite** ranking at small budgets: random $0.96\times$ vs InferLite $0.49\times$ at budget 4. InferLite only matches random at budgets 8–16.
+The research question is whether a hardware-aware multi-objective optimizer can identify near-Pareto-optimal LLM inference configurations **under a limited evaluation budget**. Whether that budget is *substantially* smaller than exhaustive search is an empirical outcome, not a premise. We compare grid, random, a hardware heuristic, and InferLite on two measured scale studies. On Apple MPS, a 40-configuration GPT-2 space (fp32/fp16 × five contexts × four decode lengths) is timed once; budgeted strategies **replay** those records across five seeds and budgets $\{2,4,8,16\}$. At budget 4 ($4/40=10\%$ of the grid) InferLite achieved a higher mean hypervolume than random: $0.86\times$ of the exhaustive front (95% Student-$t$ CI $[0.83, 0.90]$) versus $0.61\times$ (CI $[0.12, 1.10]$). At budget 16 both methods are $\approx 0.97\times$ and random is slightly ahead ($0.973$ vs $0.971$). On a Colab Tesla T4, a 30-configuration TinyLlama 1.1B space (fp16/INT4 × five contexts × three decode lengths, `warmup_runs=1`) shows the **opposite** ranking at the same small budgets: random $0.96\times$ vs InferLite $0.49\times$ at budget 4. InferLite only matches random at budgets 8–16. The effectiveness of surrogate-guided inference optimization is therefore **hardware- and budget-dependent**. InferLite does not always beat random.
 
 A leave-one-out ridge predictor fits memory almost perfectly when quantization is observed ($R^2 \approx 0.999$ on both scale grids). P95 and tokens/s are usable at $n=40$ MPS ($R^2$ $0.71$ / $0.61$) and $n=30$ T4 ($0.84$ / $0.68$), and collapse when the relevant feature group is dropped. A four-point T4 pilot yields negative P95/tokens/s $R^2$ ($-6.66$ / $-8.44$); those numbers are retained as a dataset limit, not patched. Energy is **not** an optimizer objective: the Mac scale study has no NVML (`energy.supported=false`); the T4 scale study records an NVML instant-watt probe but per-job `energy_j` is null. Llama-3-8B, Mistral, Qwen 7B+, vLLM, TensorRT-LLM, and old playground clocks (AWQ 71 tok/s, GPTQ 79 tok/s, TensorRT-LLM 295 tok/s, $4.34\times$ speculative) are **not** measurements in this paper.
 
@@ -22,7 +22,7 @@ Deploying an LLM locally is not only a modeling problem. The operator must choos
 
 This paper describes **InferLite**, an open-source research loop that treats missing kernels as first-class outcomes. Every experiment record has `status ∈ {measured, unsupported, error}`. Unsupported and error rows have **null metrics**. Search strategies never rank a method last as a proxy for “does not run.”
 
-On top of that protocol we ask a systems question that is standard in auto-tuning but rarely stated honestly for *local* LLM inference: **can a cheap surrogate recover a near-exhaustive Pareto front with a small measurement budget?** Random search is a strong baseline when few dimensions matter [6]. Sequential model-based optimization can help when evaluations are expensive [7, 8], but a surrogate trained on four noisy points can be worse than sampling. We therefore compare InferLite to grid, random, and a one-shot hardware heuristic **on the same measured points**, at multiple budgets, with multiple seeds, and we report cases where random wins.
+On top of that protocol we ask a systems question that is standard in auto-tuning but rarely stated honestly for *local* LLM inference: **can a cheap surrogate recover a near-exhaustive Pareto front under a limited measurement budget?** Random search is a strong baseline when few dimensions matter [6]. Sequential model-based optimization can help when evaluations are expensive [7, 8], but a surrogate trained on four noisy points can be worse than sampling. We therefore compare InferLite to grid, random, and a one-shot hardware heuristic **on the same measured points**, at multiple budgets, with multiple seeds. The claim is not that InferLite always beats random. The result of interest is **when** surrogate search helps — and on these artifacts that answer is hardware- and budget-dependent.
 
 Two hardware environments are used because they are what this project actually has:
 
@@ -35,18 +35,20 @@ We do not stack those tables. We do not cite simulated Llama-3 / TensorRT number
 
 ## 2. Research Question
 
-**Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal LLM inference configurations using substantially fewer measurements than exhaustive search?**
+**Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal LLM inference configurations under a limited evaluation budget?**
 
-Operationally, “near-Pareto-optimal” means high **throughput–memory hypervolume relative to the exhaustive grid** on the capability-filtered space. “Fewer measurements” means evaluation budgets $B \in \{2,4,8,16\}$ versus grid size $N=40$ (MPS) or $N=30$ (T4).
+That question is deliberately **neutral**. Whether InferLite uses *substantially* fewer measurements than exhaustive search, and whether it beats random at a given budget, are results to be measured, not assumptions in the headline.
+
+Operationally, “near-Pareto-optimal” means high **throughput–memory hypervolume relative to the exhaustive grid** on the capability-filtered space. “Limited evaluation budget” means $B \in \{2,4,8,16\}$ versus grid size $N=40$ (MPS) or $N=30$ (T4).
 
 Sub-questions, all answered from artifacts in `docs/results/`:
 
 1. What methods actually load on this MacBook MPS and this Colab T4?
 2. What is the measured Pareto front among those methods (measurement suites, not the optimizer)?
-3. Under which search-space sizes, hardware, and budgets does InferLite outperform random search on hypervolume?
+3. Under which search-space sizes, hardware, and budgets does InferLite achieve a **higher mean** hypervolume than random search?
 4. Which feature groups (hardware, quantization, workload) a ridge predictor uses, as measured by leave-one-out $R^2$?
 
-The hypothesis is **not** that InferLite always beats random. The $n=8$ MPS pilot (seed 42) had random $0.32\times$ vs InferLite $0.30\times$. The $n=30$ T4 scale study has random ahead at $B=2$ and $B=4$. Those outcomes are part of the result.
+The research question is **when** InferLite beats random, not a claim that it always does. The $n=8$ MPS pilot (seed 42) had random $0.32\times$ vs InferLite $0.30\times$. The $n=30$ T4 scale study has random ahead at $B=2$ and $B=4$. Those outcomes are part of the result. Published `budget_sweep.json` files still store an earlier wording of the question (“substantially fewer measurements”); the artifacts and numbers are unchanged.
 
 ---
 
@@ -57,7 +59,7 @@ The hypothesis is **not** that InferLite always beats random. The $n=8$ MPS pilo
 3. **Four search strategies on the same space**: exhaustive grid, uniform random of size $B$, a one-evaluation hardware heuristic, and InferLite (diverse seed, then ridge surrogate with predicted-Pareto + diversity acquisition) (`optimizer.py`).
 4. **A replay scale protocol**: time the grid once; replay budgeted strategies from the cache so hypervolume vs budget is not confounded by reloading the model (`run_budget_sweep`). Five seeds $\{42,123,456,789,1000\}$; Student-$t$ 95% intervals (`metrics.mean_std_ci95`).
 5. **A ridge performance predictor** with leave-one-out validation and feature-group ablation (hardware / quantization / workload), including negative $R^2$ when $n=4$ on T4 (`predictor.py`).
-6. **Seven published measured studies** under `docs/results/`, with figures. No Llama-3-8B, Mistral, or Qwen 7B+ timings. No energy scores. No MMLU / GSM8K / HumanEval.
+6. **Seven measured study artifacts** across two hardware environments (Apple MPS and Colab Tesla T4), with figures: two scale-search studies (`optimizer_macbook_scale/`, `optimizer_colab_t4_scale/`), two measurement suites (`macbook_mps_gpt2/`, `colab_t4_lite/`), two search pilots (`optimizer_macbook/`, `optimizer_colab_t4/`), and one T4 llama.cpp backend study (`colab_t4_gguf/`). These are separate published directories, not seven independent replications of one experiment. No Llama-3-8B, Mistral, or Qwen 7B+ timings. No energy scores. No MMLU / GSM8K / HumanEval.
 
 ---
 
@@ -249,6 +251,8 @@ The predictor is used in two roles: (i) InferLite acquisition, (ii) a post-hoc a
 
 ## 12. Experimental Setup
 
+These are **seven measured study artifacts** across two hardware environments, not seven independent replications of one experiment: two measurement suites, two scale-search studies, two search pilots, and one T4 llama.cpp backend study.
+
 | Study | Hardware | Model | $N$ / notes | Artifacts |
 |-------|----------|-------|-------------|-----------|
 | Measurement suite | Apple MPS | GPT-2 / DistilGPT-2 | 29 records: 19 measured, 10 unsupported, 0 error | `docs/results/macbook_mps_gpt2/` |
@@ -265,7 +269,7 @@ The predictor is used in two roles: (i) InferLite acquisition, (ii) a post-hoc a
 $$
 \bar x \pm t_{0.975,\,n-1}\, s / \sqrt{n}, \quad s = \text{sample std (ddof=1)}.
 $$
-HV ratios are not bounded in the interval estimator; CIs may exit $[0,1]$ or go negative. That is a calibration failure of the $t$-interval under high variance, not negative hypervolume.
+HV ratios themselves are bounded by the exhaustive-grid reference ($\mathrm{HV}_{\mathrm{rel}}\le 1$ for a subset of the same measured points). **Confidence intervals may extend above 1** (Mac $B=16$ InferLite $[0.930, 1.011]$; T4 $B=16$ InferLite $[0.988, 1.001]$) **because they quantify uncertainty around the sample mean; the normalized hypervolume itself is bounded by the exhaustive-grid reference.** Intervals may also go below 0 when the seed-to-seed standard deviation is large and $n=5$; that is a poorly calibrated $t$-interval, not negative hypervolume.
 
 **Decode:** greedy, seed 42 inside `run_benchmark` for a given measurement. Optimizer seeds shuffle *which* configs are chosen, not the generate RNG independently per strategy beyond that.
 
@@ -334,6 +338,8 @@ Do not compare 9.125 MB to Hugging Face 2108 MB CUDA as if they were the same al
 
 ### 13.4 Optimizer scale: MPS, $N=40$, five seeds
 
+This is the strongest **positive** InferLite-vs-random comparison in the repository. It is **not** a license to claim InferLite always beats random: Section 13.5 reports the opposite ranking on T4 at the same $B=4$. Together the two tables are the result: **the effectiveness of surrogate-guided inference optimization is hardware- and budget-dependent.**
+
 Grid HV $= 62165.22$ (absolute, memory×throughput units). Figure 9 is the main hypervolume-vs-budget plot.
 
 ![Figure 9. Mean HV relative to exhaustive grid vs evaluation budget on GPT-2 / Apple MPS ($N=40$). Error bars: 95% Student-$t$ intervals over seeds $\{42,123,456,789,1000\}$. Grid is the dashed line at 1.0. Heuristic is one evaluation ($\mathrm{HV}_{\mathrm{rel}}=0.177$).](results/optimizer_macbook_scale/figures/hv_vs_budget.png)
@@ -347,9 +353,9 @@ Grid HV $= 62165.22$ (absolute, memory×throughput units). Figure 9 is the main 
 
 Source: `docs/results/optimizer_macbook_scale/hv_vs_budget.csv`.
 
-At $B=4$ (10% of the grid) InferLite is both higher on the mean and **much more stable** (std $0.03$ vs $0.39$). Per-seed $\mathrm{HV}_{\mathrm{rel}}$ at $B=4$: InferLite $\{0.829, 0.906, 0.888, 0.850, 0.850\}$; random $\{0.107, 0.818, 0.257, 0.904, 0.950\}$ (`budget_sweep.json`). Random’s interval includes values $>1$ and, at $B=2$, $<0$: the $t$-interval is poorly calibrated when $s$ is large and $n=5$.
+At $B=4$ (4 of 40 evaluations, **10% of the grid**) InferLite achieved a **higher mean** $\mathrm{HV}_{\mathrm{rel}}$ than random ($0.86\times$ vs $0.61\times$) and was **much more stable** (std $0.03$ vs $0.39$). This is a comparison of means over five seeds, **not** a claim of statistical significance. Per-seed $\mathrm{HV}_{\mathrm{rel}}$ at $B=4$: InferLite $\{0.829, 0.906, 0.888, 0.850, 0.850\}$; random $\{0.107, 0.818, 0.257, 0.904, 0.950\}$ (`budget_sweep.json`). Random’s interval includes values $>1$ and, at $B=2$, $<0$: the $t$-interval is poorly calibrated when $s$ is large and $n=5$.
 
-At $B=16$ ($\approx 40\%$ of the space) both methods sit near the grid; random is slightly ahead. InferLite does **not** replace exhaustive search once the budget is large.
+At $B=16$ ($\approx 40\%$ of the space) both methods sit near the grid; random is slightly ahead on the mean. InferLite does **not** replace exhaustive search once the budget is large.
 
 ![Figure 10. MPS scale at the highlight budget $B=4$: wall-clock evaluations (left) and mean $\mathrm{HV}_{\mathrm{rel}}$ (right). InferLite and random both use 4 evaluations; grid uses 40; heuristic uses 1. Source: `docs/results/optimizer_macbook_scale/figures/search_vs_baselines.png`.](results/optimizer_macbook_scale/figures/search_vs_baselines.png)
 
@@ -359,9 +365,11 @@ Figure 11 is the **exhaustive grid** in the $(M,T)$ plane (all 40 measured point
 
 ### 13.5 Optimizer scale: T4, $N=30$, five seeds
 
+Same protocol, opposite ranking at small budgets. At $B=4$, random achieved a **higher mean** $\mathrm{HV}_{\mathrm{rel}}$ than InferLite ($0.96\times$ vs $0.49\times$). That contrast with Section 13.4 is the scientific result, not a defect to hide.
+
 Grid HV $= 35888.12$. `warmup_runs=1`. First published FP16 scale row is $33.4$ tok/s at $c=32$, $n=8$ (not $6.1$ tok/s).
 
-![Figure 12. Same protocol on TinyLlama / Tesla T4 ($N=30$). Random dominates InferLite at $B=2$ and $B=4$; the curves meet near $0.97$ at $B=8$.](results/optimizer_colab_t4_scale/figures/hv_vs_budget.png)
+![Figure 12. Same protocol on TinyLlama / Tesla T4 ($N=30$). Random has a higher mean $\mathrm{HV}_{\mathrm{rel}}$ than InferLite at $B=2$ and $B=4$; the curves meet near $0.97$ at $B=8$.](results/optimizer_colab_t4_scale/figures/hv_vs_budget.png)
 
 | $B$ | InferLite mean (std) [95% CI] | Random mean (std) [95% CI] | InferLite mean $>$ random? |
 |----:|------------------------------:|---------------------------:|:---------------------------|
@@ -463,11 +471,13 @@ Same qualitative story. Memory MAE jumps from $5$ MB to $721$ MB without the met
 
 **Design.** For each hardware, one exhaustive measured grid; $5$ independent seeds; $4$ budgets. Strategies share $f(x)$. Variance is over seeds, not over repeated generates of the same config (those repeats are already averaged inside `measure_runs`).
 
-**Interval.** Student-$t$ with $df=4$, $t_{0.975}=2.776$. We report mean, unbiased std, and CI of $\mathrm{HV}_{\mathrm{rel}}$. We do **not** run paired Wilcoxon tests in the repository; any claim of “significance” beyond non-overlapping CIs would be extra-statistical relative to the artifacts. On MPS $B=4$, InferLite’s CI $[0.83, 0.90]$ does not overlap random’s mean $0.61$, but random’s CI is so wide $[0.12, 1.10]$ that it *does* overlap InferLite’s mean. The honest summary is: InferLite is more **stable**; a test of means at $n=5$ is underpowered for random.
+**Interval.** Student-$t$ with $df=4$, $t_{0.975}=2.776$. We report mean, unbiased std, and CI of $\mathrm{HV}_{\mathrm{rel}}$. Five seeds is a **small** sample. We do **not** run paired Wilcoxon or $t$-tests in the repository and we do **not** call these rankings statistically significant. On MPS $B=4$, InferLite’s CI $[0.83, 0.90]$ does not overlap random’s mean $0.61$, but random’s CI is so wide $[0.12, 1.10]$ that it *does* overlap InferLite’s mean. The honest summary is: InferLite achieved a **higher mean** hypervolume and was more **stable**; a test of means at $n=5$ is underpowered for random.
+
+**Intervals above 1.** Confidence intervals may extend above 1 because they quantify uncertainty around the sample mean; the normalized hypervolume itself is bounded by the exhaustive-grid reference. Mac $B=16$ InferLite $[0.930, 1.011]$ and T4 $B=16$ InferLite $[0.988, 1.001]$ are examples, not evidence that a subset beat the grid.
 
 **Budget 2.** InferLite does not fit a ridge model. Comparing “InferLite” to random at $B=2$ is comparing diverse/heuristic seeding to uniform sampling.
 
-**Multiple hardware.** The MPS and T4 rankings disagree at $B=4$. Pooling them into one “InferLite wins” sentence would be false. The research question is **conditional**: *on this space, at this $B$, on this device*.
+**Multiple hardware.** The MPS and T4 rankings disagree at $B=4$. Pooling them into one “InferLite wins” sentence would be false. The scientific claim is that **surrogate-guided inference optimization is hardware- and budget-dependent**. InferLite does not always beat random. The research question is **when** it does: *on this space, at this $B$, on this device*.
 
 **Replay vs re-measure.** Replay removes load-time noise from strategy comparisons. It also means InferLite never observes a fresh noisy $f(x)$ that differs from the grid. That is closer to “noiseless BO on a lookup table” than to online auto-tuning under nonstationarity.
 
@@ -487,7 +497,7 @@ Same qualitative story. Memory MAE jumps from $5$ MB to $721$ MB without the met
 
 **Energy and quality.** Energy is not in hypervolume. Mac scale: NVML unsupported. T4 scale: NVML instant-watt probe only; `energy_j` is null. MMLU / GSM8K / HumanEval are not run.
 
-**Statistics.** $n_{\mathrm{seeds}}=5$; CIs miscalibrated under large $s$; no correction for looking at four budgets × two devices.
+**Statistics.** $n_{\mathrm{seeds}}=5$ is small; CIs miscalibrated under large $s$; no hypothesis tests and no correction for looking at four budgets × two devices. Do not read mean rankings as statistically significant.
 
 **Generalization.** Hardware features do nothing on a single machine. Cross-device transfer (train on MPS, test on T4) is **not** measured.
 
@@ -517,11 +527,13 @@ Software: https://github.com/Shivani767/llm-inferlite (Apache 2.0).
 
 ## 18. Discussion
 
-The hypothesis is only **partially** supported, and the support is hardware-dependent.
+The effectiveness of surrogate-guided inference optimization is **hardware- and budget-dependent**. InferLite does not always beat random. The research question is *when* InferLite beats random, not a claim that it always does.
 
-On MPS GPT-2, InferLite is a **sample-efficient, low-variance** way to approach the $(M,T)$ front at $B=4$–$8$. Random eventually matches it when $B$ is 40% of $N$. That matches the classical view that sequential search helps when evaluations are few, and that random search is competitive as the budget grows [6].
+The strongest InferLite-vs-random comparison is MPS GPT-2 at $B=4$: mean $\mathrm{HV}_{\mathrm{rel}}=0.86$ using $4/40=10\%$ of exhaustive measurements, versus random $0.61$, with much lower seed variance. That is evidence that a sequential policy *can* approach the front with a limited budget on this space. It is not a significance test.
 
-On T4 TinyLlama, the feasible set is essentially two memory/throughput clusters (fp16 vs INT4). Uniform samples of size 4 almost always hit both clusters; InferLite’s early trajectory does not. Surrogate search is not automatically better than random on a small, clustered space — consistent with Bergstra and Bengio’s warning that adaptive methods must beat random, not merely look more sophisticated [6].
+On T4 TinyLlama at the same $B=4$, random achieved a higher mean hypervolume ($0.96\times$ vs InferLite $0.49\times$). The feasible set is essentially two memory/throughput clusters (fp16 vs INT4). Uniform samples of size 4 almost always hit both clusters; InferLite’s early trajectory does not. Surrogate search is not automatically better than random on a small, clustered space — consistent with Bergstra and Bengio’s warning that adaptive methods must beat random, not merely look more sophisticated [6].
+
+On MPS, random eventually matches InferLite when $B$ is 40% of $N$ ($B=16$: $0.973$ vs $0.971$). That matches the classical view that sequential search can help when evaluations are few, and that random search is competitive as the budget grows [6].
 
 The predictor ablations explain *what can be learned* from a full grid: quantization ≈ memory and tok/s; workload ≈ P95; hardware ≈ nothing on one device. They do **not** imply that InferLite’s online ridge, fit on three points, is well-specified. The $n=4$ T4 negative $R^2$ is the correct warning.
 
@@ -533,7 +545,7 @@ Practically: if the operator can afford $N$ measurements, use the grid. If the o
 
 InferLite is a hardware-aware measurement-and-search loop for LLM inference configurations. It times what loads, refuses to score missing kernels, compares grid / random / heuristic / surrogate search on cached wall-clock records, and reports hypervolume vs budget with five seeds.
 
-On a 40-point MPS GPT-2 grid, InferLite reached $0.86\times$ of exhaustive throughput–memory hypervolume at 4 evaluations with a tight interval; random was lower on average and unstable; at 16 evaluations random was slightly ahead. On a 30-point T4 TinyLlama grid, random was ahead at 4 evaluations ($0.96\times$ vs $0.49\times$) and the methods met near $0.97\times$ at budget 8. An 8-point MPS pilot had random slightly ahead of InferLite. A 4-point T4 predictor had negative P95/tokens/s $R^2$; a 30-point T4 predictor did not.
+The headline finding is not that InferLite always beats random. It is that **surrogate-guided inference optimization is hardware- and budget-dependent**. On a 40-point MPS GPT-2 grid, InferLite achieved a higher mean hypervolume than random at 4 evaluations ($0.86\times$ of the exhaustive front, 10% of the measurements) with a tight interval; random was lower on the mean and unstable; at 16 evaluations random was slightly ahead. On a 30-point T4 TinyLlama grid, random was ahead at 4 evaluations ($0.96\times$ vs $0.49\times$) and the methods met near $0.97\times$ at budget 8. An 8-point MPS pilot had random slightly ahead of InferLite. A 4-point T4 predictor had negative P95/tokens/s $R^2$; a 30-point T4 predictor did not.
 
 Those sentences can appear in the same paper because none of the numbers were invented. The open question is not whether to add RAG or a chatbot: it is under which **search-space geometries and budgets** a hardware-aware surrogate beats random search — and that question is only as good as the next measured grid.
 

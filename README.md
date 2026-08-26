@@ -10,9 +10,9 @@ Paper: [`docs/paper.md`](docs/paper.md) · Raw artifacts: [`docs/results/`](docs
 
 ## Research question
 
-**Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal LLM inference configurations using substantially fewer measurements than exhaustive search?**
+**Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal LLM inference configurations under a limited evaluation budget?**
 
-That is a testable claim: grid vs random vs heuristic vs InferLite, same search space, hypervolume vs evaluation budget, multiple seeds.
+That question is testable: grid vs random vs heuristic vs InferLite, same search space, hypervolume vs evaluation budget, multiple seeds. Whether InferLite uses *substantially* fewer measurements than exhaustive search, and whether it beats random, are results — not assumptions. **InferLite does not always beat random.** The research question is *when* it does.
 
 ## Method
 
@@ -77,7 +77,7 @@ YAML, `backend/requirements.txt` (Mac) and `backend/requirements-colab.txt` (Col
 
 ![Does InferLite reach a good Pareto front faster than random search?](docs/results/optimizer_macbook_scale/figures/hv_vs_budget.png)
 
-Seven **measured** studies. Different models and backends — do not stack the tables. Raw logs live under [`docs/results/`](docs/results/).
+Seven **measured study artifacts** across two hardware environments: two scale-search studies, two measurement suites, two search pilots, and one T4 llama.cpp backend study. These are separate published directories, not seven replications of one experiment. Different models and backends — do not stack the tables. Raw logs live under [`docs/results/`](docs/results/).
 
 | Study | Model | Device | Artifacts |
 |-------|-------|--------|-----------|
@@ -100,7 +100,7 @@ Same 40-point GPT-2 / MPS space. Grid timed once (40 wall-clock jobs). Budgeted 
 | 8 | 0.92 (0.02) [0.90, 0.95] | 0.80 (0.38) [0.33, 1.27] | yes |
 | 16 | 0.97 (0.03) [0.93, 1.01] | **0.97 (0.01) [0.95, 0.99]** | no |
 
-Heuristic is 0.18× at every budget (one FP16 pick). Random’s budget-2 CI crosses below 0 because n=5 and the sample is unstable; HV/grid cannot be negative.
+Heuristic is 0.18× at every budget (one FP16 pick). Random’s budget-2 CI crosses below 0 because n=5 and the sample is unstable; HV/grid cannot be negative. Confidence intervals may extend above 1 (budget 16) because they quantify uncertainty around the sample mean; the normalized hypervolume itself is bounded by the exhaustive-grid reference. Five seeds is a small sample; these are mean rankings, not significance tests.
 
 **InferLite does not always beat random.** On this Mac space it reaches ~86% of grid hypervolume at 4 evaluations (10% of the space) with low variance. Random gets there eventually: at 16 evaluations both are ~0.97× and random is slightly ahead.
 
@@ -117,7 +117,7 @@ Same protocol on a Colab Tesla T4. 30 wall-clock jobs, `warmup_runs=1`. First FP
 
 Heuristic is 0.19× at every budget.
 
-**On T4, random is ahead at budgets 2 and 4.** InferLite only catches up at 8–16 evaluations. That is the opposite of the Mac ranking at budget 4. The research question is *when* InferLite beats random, not a claim that it always does.
+**On T4, random is ahead at budgets 2 and 4.** InferLite only catches up at 8–16 evaluations. That is the opposite of the Mac ranking at budget 4. The effectiveness of surrogate-guided search is hardware- and budget-dependent. The research question is *when* InferLite beats random, not a claim that it always does.
 
 ![T4 HV vs budget](docs/results/optimizer_colab_t4_scale/figures/hv_vs_budget.png)
 

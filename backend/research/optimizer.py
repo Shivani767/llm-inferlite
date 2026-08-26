@@ -25,8 +25,7 @@ EvalFn = Callable[[Candidate], ExperimentRecord]
 
 RESEARCH_QUESTION = (
     "Can a hardware-aware multi-objective optimizer identify near-Pareto-optimal "
-    "LLM inference configurations using substantially fewer measurements than "
-    "exhaustive search?"
+    "LLM inference configurations under a limited evaluation budget?"
 )
 DEFAULT_SEEDS = (42, 123, 456, 789, 1000)
 DEFAULT_BUDGETS = (2, 4, 8, 16)
