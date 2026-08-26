@@ -11,7 +11,7 @@
 - Protocol: exhaustive grid timed once; random / InferLite / heuristic **replay** those wall-clock records. Metrics are not invented.
 - Energy: **unsupported** (no NVML)
 
-This is the centerpiece optimizer result. The earlier 8-point pilot is in [`../optimizer_macbook/`](../optimizer_macbook/). Do not mix with Colab T4 TinyLlama numbers. T4 30-config scale is not measured yet ([`../optimizer_colab_t4_scale/`](../optimizer_colab_t4_scale/)).
+This is the Mac centerpiece optimizer result. The earlier 8-point MPS pilot is in [`../optimizer_macbook/`](../optimizer_macbook/). Do not mix these GPT-2 / MPS hypervolumes with TinyLlama / Tesla T4. The **measured** T4 30-config scale (30 measured, 0 unsupported, 0 error; seeds 42/123/456/789/1000; budgets 2/4/8/16; `warmup_runs=1`) is in [`../optimizer_colab_t4_scale/`](../optimizer_colab_t4_scale/).
 
 ## InferLite vs random (key comparison)
 

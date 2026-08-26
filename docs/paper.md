@@ -12,7 +12,7 @@ Selecting quantization, context length, and decode length for large language mod
 
 The central hypothesis is whether a hardware-aware surrogate can identify near-Pareto-optimal inference configurations using substantially fewer wall-clock evaluations than exhaustive search. We test that claim with two measured scale studies. On Apple MPS, a 40-configuration GPT-2 space (fp32/fp16 × five contexts × four decode lengths) is timed once; budgeted strategies **replay** those records across five seeds and budgets $\{2,4,8,16\}$. InferLite recovers mean hypervolume $0.86\times$ of the grid at budget 4 (10% of the space; 95% Student-$t$ CI $[0.83, 0.90]$) versus random $0.61\times$ (CI $[0.12, 1.10]$). At budget 16 both methods are $\approx 0.97\times$ and random is slightly ahead ($0.973$ vs $0.971$). On a Colab Tesla T4, a 30-configuration TinyLlama 1.1B space (fp16/INT4 × five contexts × three decode lengths, `warmup_runs=1`) shows the **opposite** ranking at small budgets: random $0.96\times$ vs InferLite $0.49\times$ at budget 4. InferLite only matches random at budgets 8–16.
 
-A leave-one-out ridge predictor fits memory almost perfectly when quantization is observed ($R^2 \approx 0.999$ on both scale grids). P95 and tokens/s are usable at $n=40$ MPS ($R^2$ $0.71$ / $0.61$) and $n=30$ T4 ($0.84$ / $0.68$), and collapse when the relevant feature group is dropped. A four-point T4 pilot yields negative P95/tokens/s $R^2$ ($-6.66$ / $-8.44$); those numbers are retained as a dataset limit, not patched. Energy is unsupported without NVML. Llama-3-8B, Mistral, Qwen 7B+, vLLM, TensorRT-LLM, and old playground clocks (AWQ 71 tok/s, GPTQ 79 tok/s, TensorRT-LLM 295 tok/s, $4.34\times$ speculative) are **not** measurements in this paper.
+A leave-one-out ridge predictor fits memory almost perfectly when quantization is observed ($R^2 \approx 0.999$ on both scale grids). P95 and tokens/s are usable at $n=40$ MPS ($R^2$ $0.71$ / $0.61$) and $n=30$ T4 ($0.84$ / $0.68$), and collapse when the relevant feature group is dropped. A four-point T4 pilot yields negative P95/tokens/s $R^2$ ($-6.66$ / $-8.44$); those numbers are retained as a dataset limit, not patched. Energy is **not** an optimizer objective: the Mac scale study has no NVML (`energy.supported=false`); the T4 scale study records an NVML instant-watt probe but per-job `energy_j` is null. Llama-3-8B, Mistral, Qwen 7B+, vLLM, TensorRT-LLM, and old playground clocks (AWQ 71 tok/s, GPTQ 79 tok/s, TensorRT-LLM 295 tok/s, $4.34\times$ speculative) are **not** measurements in this paper.
 
 ---
 
@@ -65,7 +65,7 @@ The hypothesis is **not** that InferLite always beats random. The $n=8$ MPS pilo
 
 **Serving systems.** vLLM uses PagedAttention to reduce KV-cache fragmentation and improve throughput [1]. TensorRT-LLM and FasterTransformer similarly assume a CUDA compilation stack. InferLite does not reimplement those kernels. On this Mac, vLLM is unsupported (`PagedAttention is only measured with vLLM, which is not available here`). Continuous batching and speculative decoding in the MPS suite are **in-process research loops**, not vLLM.
 
-**Quantization.** GPTQ [3], AWQ [2], LLM.int8() [4], and QLoRA/NF4 [5] are the methods InferLite *attempts* when the loader exists. SmoothQuant [10] and SqueezeLLM [11] are named in the Mac quantization suite and returned `unsupported` (not bundled). llama.cpp GGUF is a separate backend [12]; its memory snapshot is not CUDA VRAM (Section 10).
+**Quantization.** GPTQ [3], AWQ [2], LLM.int8() [4], and QLoRA/NF4 [5] are the methods InferLite *attempts* when the loader exists. SmoothQuant [10] and SqueezeLLM [11] are named in the Mac quantization suite and returned `unsupported` (not bundled). llama.cpp GGUF is a separate backend [12]; its memory snapshot is not CUDA VRAM (Section 13.3).
 
 **Speculative decoding.** Leviathan et al. [13] established draft-target verification. The MPS suite times DistilGPT-2 as draft against GPT-2 with $\gamma \in \{2,4\}$. Acceptance is $0.68$–$0.75$; wall-clock throughput is **lower** than the greedy baseline (77–98 vs 164 tok/s). That is a measured slowdown, not a $4.34\times$ playground claim.
 
@@ -118,7 +118,7 @@ A strategy with budget $B \ll |\mathcal{X}_{\mathrm{hw}}|$ is useful if $\mathrm
 
 `research.engine.run_benchmark` loads via `try_load`, discards `warmup_runs` generates, then records `measure_runs` greedy decodes (`temperature=0`, fixed seed). Metrics: TTFT, inter-token latency, end-to-end latency (mean, std, P50/P95/P99), tokens/s, load time, peak RSS and/or CUDA allocated/reserved bytes. Repeated-run 95% CIs on a single config use a normal approximation $\bar x \pm 1.96\,\mathrm{SE}$ when $n_{\mathrm{runs}}\ge 2$ (`percentile_stats`). Missing samples yield `None`, not zeros.
 
-Energy: `probe_energy` returns NVML instant watts if `pynvml` works; otherwise `supported=false` and energy is not scored. Both published optimizer studies report energy **unsupported**.
+Energy: `probe_energy` returns NVML instant watts if `pynvml` works; otherwise `supported=false`. Energy is **not** part of hypervolume. The Mac scale study records `energy.supported=false` (`no NVML/power sensor on this machine; energy is not scored`). The T4 scale study records `energy.supported=true` with an NVML instant-watt snapshot in `search_study.json`, but each job’s `metrics.energy_j` is **null**, so joules are not scored.
 
 Quality: optional short-passage perplexity exists in the schema. MMLU, GSM8K, and HumanEval are not run and not fabricated.
 
@@ -195,7 +195,7 @@ Uniform sample of $B$ distinct candidates (`random.Random(seed).sample`). No sur
 - else CUDA or MPS and `fp16` present → prefer FP16;
 - else FP32 if present.
 
-Among methods with that precision it takes the **median** $(c,n,b)$ after sorting. On MPS this is a mid-context FP16 point (HV$_{\mathrm{rel}}=0.177$ on $n=40$). On T4 scale the heuristic prefers INT4 (GPU $\approx 15\,\mathrm{GiB}$ is not $<10\,\mathrm{GiB}$, so the INT4 branch does not fire; FP16 is preferred — HV$_{\mathrm{rel}}=0.188$). The $n=4$ T4 pilot README reports the heuristic as “FP16, longer context” at $0.22\times$. The heuristic is a **constant** across budgets because it always uses one evaluation.
+Among methods with that precision it takes the **median** $(c,n,b)$ after sorting. On MPS this is a mid-context FP16 point (HV$_{\mathrm{rel}}=0.177$ on $n=40$). On T4 scale, GPU memory is $14912.69$ MB (`Tesla T4`), which is not $<10\,000$ MB, so the INT4 branch does not fire and the heuristic prefers FP16 (HV$_{\mathrm{rel}}=0.188$). The $n=4$ T4 pilot README reports the heuristic as “FP16, longer context” at $0.22\times$. The heuristic is a **constant** across budgets because it always uses one evaluation.
 
 ### 9.4 InferLite
 
@@ -259,7 +259,7 @@ The predictor is used in two roles: (i) InferLite acquisition, (ii) a post-hoc a
 | Search pilot | Apple MPS | GPT-2 | 8 configs; seed 42; $B=4$ | `docs/results/optimizer_macbook/` |
 | Search pilot | Tesla T4 | TinyLlama HF | 4 configs; seed 42; $B=2$; `warmup_runs=0` | `docs/results/optimizer_colab_t4/` |
 
-**Not timed:** Llama-3 / Mistral / Qwen 7B+, energy (no NVML), MMLU / GSM8K / HumanEval, Mac→T4 predictor transfer, vLLM, TensorRT-LLM, AWQ/GPTQ as real quantized checkpoints on these runs.
+**Not timed / not scored as objectives:** Llama-3 / Mistral / Qwen 7B+, energy joules (`energy_j` null even when NVML probes watts on T4; Mac has no NVML), MMLU / GSM8K / HumanEval, Mac→T4 predictor transfer, vLLM, TensorRT-LLM, AWQ/GPTQ as real quantized checkpoints on these runs.
 
 **Seeds (scale):** $42, 123, 456, 789, 1000$. **t-critical value** for $n=5$ ($df=4$) is $2.776$ (`metrics._T_CRIT_975`). Interval:
 $$
@@ -277,17 +277,29 @@ Different models and backends must not be stacked into one ranking.
 
 ### 13.1 Measurement suite: MacBook MPS / GPT-2
 
-Config `configs/macbook_cpu.yaml`. Prompt: *“The future of efficient language model inference is”*; quantization jobs use `max_new_tokens=24`, `warmup_runs=1`, `measure_runs=3`.
+Config `configs/macbook_cpu.yaml` (device in the CSV is `mps`, not CPU). Prompt: *“The future of efficient language model inference is”*; quantization jobs use `max_new_tokens=24`, `warmup_runs=1`, `measure_runs=3`. Records: **29** (19 measured, 10 unsupported, 0 error).
 
-**Quantization (measured).** FP32: $145.8$ tok/s, P95 $174.8$ ms, RSS $761$ MB. FP16: $211.2$ tok/s, P95 $118.3$ ms, RSS $1064$ MB. FP16 is the dense Hugging Face throughput win on this MPS run.
+**Quantization (measured).** FP32: $145.8$ tok/s, P95 $174.8$ ms, RSS $761$ MB. FP16: $211.2$ tok/s, P95 $118.3$ ms, RSS $1064$ MB. FP16 is the dense Hugging Face throughput win on this MPS run. Figure 1 shows only those two measured quantization bars; unsupported methods are omitted from the plot, not scored as zero.
 
-**Quantization (unsupported, 8 methods):** bf16 (CUDA required); dynamic INT8 (`linear_prepack` / NoQEngine); bitsandbytes INT8 and INT4 (CUDA); AWQ; GPTQ; GGUF (`llama_cpp` missing); SmoothQuant (not wired); SqueezeLLM (not bundled). These are **not** ranked last. They have no tokens/s.
+![Figure 1. Measured GPT-2 quantization on Apple MPS (`macbook_cpu`): mean tokens/s (left) and end-to-end P95 (right). Source: `docs/results/macbook_mps_gpt2/figures/quantization_comparison.png`.](results/macbook_mps_gpt2/figures/quantization_comparison.png)
 
-**KV cache (measured, FP16).** Dynamic cache at context $32/64/128$: $136$ / $128$ / $115$ tok/s. `no_cache` is slower at short context ($97$ and $72$ tok/s at $c=32,64$). `sliding_window` is $\approx 231$–$235$ tok/s at all three lengths because it is **prompt truncation**, not a fused sliding-window kernel. `prefix` rows are measured but tokens/s is empty in the CSV (not used as throughput scores). `paged_attention`: unsupported (no vLLM).
+**Quantization-family and KV methods that did not load (9 + PagedAttention = 10 `unsupported` rows):** bf16 (CUDA required); dynamic INT8 (`linear_prepack` / NoQEngine); bitsandbytes INT8 and INT4 (CUDA); AWQ; GPTQ; GGUF (`llama_cpp` missing); SmoothQuant (not wired); SqueezeLLM (not bundled); `paged_attention` (no vLLM). These are **not** ranked last. They have no tokens/s. Figure 2 is the catalog of those ten `unsupported` rows.
+
+![Figure 2. Unsupported experiments in the MPS measurement suite (not scored). Ten rows, all `status=unsupported`, zero `error`. Source: `docs/results/macbook_mps_gpt2/figures/unsupported_experiments.png`.](results/macbook_mps_gpt2/figures/unsupported_experiments.png)
+
+**KV cache (measured, FP16).** Dynamic cache at context $32/64/128$: $136$ / $128$ / $115$ tok/s. `no_cache` is slower at short context ($97$ and $72$ tok/s at $c=32,64$; $87$ tok/s at $c=128$). `sliding_window` is $\approx 231$–$235$ tok/s at all three lengths because it is **prompt truncation**, not a fused sliding-window kernel. `prefix` rows are measured but tokens/s is empty in the CSV (not used as throughput scores). Figure 3 plots **peak RSS and TTFT**, not tokens/s: `dynamic` is the lowest RSS; `sliding_window` RSS is flat because the prompt is truncated.
+
+![Figure 3. KV-cache scaling on MPS: peak RSS vs context (left) and mean TTFT vs context (right). Tokens/s for these rows are in `experiments.csv`, not this figure. Source: `docs/results/macbook_mps_gpt2/figures/kv_cache_scaling.png`.](results/macbook_mps_gpt2/figures/kv_cache_scaling.png)
 
 **Speculative decoding.** Baseline greedy: $164.0$ tok/s. $\gamma=2$: $77.4$ tok/s, acceptance $0.75$, speedup vs baseline $0.47\times$. $\gamma=4$: $98.2$ tok/s, acceptance $0.68$, speedup $0.60\times$. Draft acceptance is real; wall-clock speedup is **not**.
 
+![Figure 4. Speculative decoding on MPS: wall-clock tokens/s (left) and draft acceptance (right). Baseline is faster than $\gamma=2$ and $\gamma=4$. Source: `docs/results/macbook_mps_gpt2/figures/speculative_decoding.png`.](results/macbook_mps_gpt2/figures/speculative_decoding.png)
+
 **Batching.** `static_batch` $53.1$ tok/s vs `continuous_batch` $41.4$ tok/s (in-process loop, 4 requests, max batch 2, 8 new tokens). Not vLLM continuous batching.
+
+Figure 5 is the suite’s measured throughput–memory Pareto (quantization + KV rows that have tokens/s). `fp32`, `fp16`, and `sliding_window` lie on the drawn front; `dynamic` and `no_cache` do not. `sliding_window` is prompt truncation, so that high-throughput point is **not** a fused-kernel result.
+
+![Figure 5. MPS measurement-suite throughput–memory Pareto (measured points with tokens/s only). Source: `docs/results/macbook_mps_gpt2/figures/pareto_throughput_memory.png`.](results/macbook_mps_gpt2/figures/pareto_throughput_memory.png)
 
 ### 13.2 Measurement suite: Colab T4 / TinyLlama Hugging Face
 
@@ -298,9 +310,17 @@ Lite config. **Measured Pareto (notebook stdout):**
 | fp16 | 34.975 | 467.92 | 2107.5 |
 | int4_bnb | 15.306 | 1056.69 | 802.7 |
 
-FP16 wins throughput; INT4 wins memory. INT8 appears on the bar chart at $\approx 3.0$ tok/s / $\approx 5.4$ s P95 (figure-derived). A bar labeled `gptq` is **dense TinyLlama** (no `gptq_model_id`); it is not a GPTQ measurement.
+FP16 wins throughput; INT4 wins memory. Figure 6 also shows `int8_bnb` and a bar labeled `gptq`. INT8 is $\approx 3.0$ tok/s / $\approx 5.4$ s P95 (figure-derived, not an engine CSV on this machine). The `gptq` bar is **dense TinyLlama** (no `gptq_model_id`); it is not a GPTQ checkpoint measurement ($\approx 19.5$ tok/s / $\approx 860$ ms, also figure-derived). Do not cite those clocks as GPTQ.
 
-Unsupported in that lite suite: AWQ (`autoawq` missing), GGUF (`llama_cpp` missing *at that time*), SmoothQuant, SqueezeLLM. Zero errors.
+![Figure 6. T4 lite quantization bars. The `gptq` label is dense TinyLlama, not GPTQ. Source: `docs/results/colab_t4_lite/figures/quantization_comparison.png`.](results/colab_t4_lite/figures/quantization_comparison.png)
+
+Unsupported in that lite suite: AWQ (`autoawq` missing), GGUF (`llama_cpp` missing *at that time*), SmoothQuant, SqueezeLLM. Zero errors (Figure 7). GGUF was measured later in the same Colab session (`docs/results/colab_t4_gguf/`).
+
+![Figure 7. Unsupported methods in the T4 lite suite (not scored). Source: `docs/results/colab_t4_lite/figures/unsupported_experiments.png`.](results/colab_t4_lite/figures/unsupported_experiments.png)
+
+Figure 8 is the lite throughput–memory plot. The drawn front is **fp16** and **int4_bnb**. `int8_bnb` and the dense-`gptq` bar sit off the front. This plot is Hugging Face Transformers only; do not overlay llama.cpp (Section 13.3).
+
+![Figure 8. T4 lite throughput–memory Pareto (measured Hugging Face points). Source: `docs/results/colab_t4_lite/figures/pareto_throughput_memory.png`.](results/colab_t4_lite/figures/pareto_throughput_memory.png)
 
 ### 13.3 llama.cpp GGUF on the same T4
 
@@ -314,9 +334,9 @@ Do not compare 9.125 MB to Hugging Face 2108 MB CUDA as if they were the same al
 
 ### 13.4 Optimizer scale: MPS, $N=40$, five seeds
 
-Grid HV $= 62165.22$ (absolute, memory×throughput units). Figure 1 is the main plot.
+Grid HV $= 62165.22$ (absolute, memory×throughput units). Figure 9 is the main hypervolume-vs-budget plot.
 
-![Figure 1. Mean HV relative to exhaustive grid vs evaluation budget on GPT-2 / Apple MPS ($N=40$). Error bars: 95% Student-$t$ intervals over seeds $\{42,123,456,789,1000\}$. Grid is the dashed line at 1.0. Heuristic is one evaluation ($\mathrm{HV}_{\mathrm{rel}}=0.177$).](results/optimizer_macbook_scale/figures/hv_vs_budget.png)
+![Figure 9. Mean HV relative to exhaustive grid vs evaluation budget on GPT-2 / Apple MPS ($N=40$). Error bars: 95% Student-$t$ intervals over seeds $\{42,123,456,789,1000\}$. Grid is the dashed line at 1.0. Heuristic is one evaluation ($\mathrm{HV}_{\mathrm{rel}}=0.177$).](results/optimizer_macbook_scale/figures/hv_vs_budget.png)
 
 | $B$ | InferLite mean (std) [95% CI] | Random mean (std) [95% CI] | InferLite mean $>$ random? |
 |----:|------------------------------:|---------------------------:|:---------------------------|
@@ -331,13 +351,17 @@ At $B=4$ (10% of the grid) InferLite is both higher on the mean and **much more 
 
 At $B=16$ ($\approx 40\%$ of the space) both methods sit near the grid; random is slightly ahead. InferLite does **not** replace exhaustive search once the budget is large.
 
-![Figure 2. MPS scale at the highlight budget $B=4$: wall-clock evaluations (left) and mean $\mathrm{HV}_{\mathrm{rel}}$ (right).](results/optimizer_macbook_scale/figures/search_vs_baselines.png)
+![Figure 10. MPS scale at the highlight budget $B=4$: wall-clock evaluations (left) and mean $\mathrm{HV}_{\mathrm{rel}}$ (right). InferLite and random both use 4 evaluations; grid uses 40; heuristic uses 1. Source: `docs/results/optimizer_macbook_scale/figures/search_vs_baselines.png`.](results/optimizer_macbook_scale/figures/search_vs_baselines.png)
+
+Figure 11 is the **exhaustive grid** in the $(M,T)$ plane (all 40 measured points). FP32 clusters near $\approx 440$–$470$ MB RSS; FP16 near $\approx 740$–$760$ MB. On this MPS run FP16 uses **more** RSS than FP32 and reaches higher tokens/s. The red line is the measured throughput–memory Pareto of the grid, not of InferLite’s budget-4 subset.
+
+![Figure 11. MPS $N=40$ grid: throughput vs peak RSS, measured only. Source: `docs/results/optimizer_macbook_scale/figures/pareto_throughput_memory.png`.](results/optimizer_macbook_scale/figures/pareto_throughput_memory.png)
 
 ### 13.5 Optimizer scale: T4, $N=30$, five seeds
 
 Grid HV $= 35888.12$. `warmup_runs=1`. First published FP16 scale row is $33.4$ tok/s at $c=32$, $n=8$ (not $6.1$ tok/s).
 
-![Figure 3. Same protocol on TinyLlama / Tesla T4 ($N=30$). Random dominates InferLite at $B=2$ and $B=4$; the curves meet near $0.97$ at $B=8$.](results/optimizer_colab_t4_scale/figures/hv_vs_budget.png)
+![Figure 12. Same protocol on TinyLlama / Tesla T4 ($N=30$). Random dominates InferLite at $B=2$ and $B=4$; the curves meet near $0.97$ at $B=8$.](results/optimizer_colab_t4_scale/figures/hv_vs_budget.png)
 
 | $B$ | InferLite mean (std) [95% CI] | Random mean (std) [95% CI] | InferLite mean $>$ random? |
 |----:|------------------------------:|---------------------------:|:---------------------------|
@@ -350,7 +374,15 @@ Heuristic: $0.188$ at every budget.
 
 **Why random wins at $B=4$ on T4.** InferLite per-seed $\mathrm{HV}_{\mathrm{rel}}$: $\{0.198, 0.984, 0.198, 0.875, 0.198\}$. Three of five seeds remain near the heuristic-scale front ($\approx 0.20$). Random is tightly clustered: $\{0.965, 0.946, 0.937, 0.992, 0.945\}$. On this TinyLlama space a uniform sample of four points almost always covers both fp16 (high $T$, high $M$) and int4 (low $M$). InferLite’s diverse/heuristic seed plus one surrogate step is **seed-fragile** here. That is a real limitation of the acquisition, not a plotting artifact.
 
-Do not copy Figure 1’s ranking onto Figure 3.
+Do not copy Figure 9’s ranking onto Figure 12.
+
+Figure 13 is the highlight-budget bar chart ($B=4$): random $\approx 0.96\times$, InferLite $\approx 0.49\times$, heuristic $\approx 0.19\times$, grid $1.0$ at 30 evaluations. This is the same ranking as the table, not a different experiment.
+
+![Figure 13. T4 scale at $B=4$: wall-clock evaluations (left) and mean $\mathrm{HV}_{\mathrm{rel}}$ (right). Random’s bar is near the grid; InferLite’s is not. Source: `docs/results/optimizer_colab_t4_scale/figures/search_vs_baselines.png`.](results/optimizer_colab_t4_scale/figures/search_vs_baselines.png)
+
+Figure 14 is the $N=30$ grid in the $(M,T)$ plane. INT4 (`int4_bnb`) clusters near $\approx 800$–$850$ MB CUDA allocated; FP16 near $\approx 2110$ MB. That two-cluster geometry is why a uniform sample of four points often hits both sides of the front.
+
+![Figure 14. T4 $N=30$ grid: throughput vs peak CUDA allocated memory, measured only. Source: `docs/results/optimizer_colab_t4_scale/figures/pareto_throughput_memory.png`.](results/optimizer_colab_t4_scale/figures/pareto_throughput_memory.png)
 
 ### 13.6 Pilots (kept as negative controls)
 
@@ -365,7 +397,7 @@ Do not copy Figure 1’s ranking onto Figure 3.
 
 On this seed random slightly beat InferLite. Neither recovered the grid front. Cite Section 13.4, not this ranking, for the optimizer claim.
 
-![Figure 4. MPS $n=8$ pilot, seed 42.](results/optimizer_macbook/figures/search_vs_baselines.png)
+![Figure 15. MPS $n=8$ pilot, seed 42. Source: `docs/results/optimizer_macbook/figures/search_vs_baselines.png`.](results/optimizer_macbook/figures/search_vs_baselines.png)
 
 **T4 $n=4$, seed 42, $B=2$, `warmup_runs=0`:**
 
@@ -385,7 +417,7 @@ On this seed random slightly beat InferLite. Neither recovered the grid front. C
 
 InferLite evaluated `fp16|c64` and `int4|c64`. Random drew the cold-start `fp16|c32` point. $n=4$ is too small, and the first row is not steady-state FP16. Do not mix with Section 13.5.
 
-![Figure 5. T4 $n=4$ pilot (cold-start first FP16 job).](results/optimizer_colab_t4/figures/search_vs_baselines.png)
+![Figure 16. T4 $n=4$ pilot (cold-start first FP16 job). Source: `docs/results/optimizer_colab_t4/figures/search_vs_baselines.png`.](results/optimizer_colab_t4/figures/search_vs_baselines.png)
 
 ---
 
@@ -395,7 +427,7 @@ Leave-one-out ridge on the **full measured grid** (not on InferLite’s $B$ poin
 
 ### 14.1 MPS, $n=40$
 
-![Figure 6. Leave-one-out tokens/s $R^2$ when dropping feature groups (MPS $n=40$). Negative bars mean worse than predicting the mean.](results/optimizer_macbook_scale/figures/predictor_ablation.png)
+![Figure 17. Leave-one-out tokens/s $R^2$ when dropping feature groups (MPS $n=40$). Negative bars mean worse than predicting the mean.](results/optimizer_macbook_scale/figures/predictor_ablation.png)
 
 | Variant | P95 $R^2$ | Tokens/s $R^2$ | Memory $R^2$ | P95 MAE | Tok/s MAE | Mem MAE |
 |---------|----------:|---------------:|-------------:|--------:|----------:|--------:|
@@ -408,7 +440,7 @@ Hardware features are constant on one Mac, so dropping them changes nothing. Qua
 
 ### 14.2 T4, $n=30$
 
-![Figure 7. Same ablation on TinyLlama / T4 ($n=30$).](results/optimizer_colab_t4_scale/figures/predictor_ablation.png)
+![Figure 18. Same ablation on TinyLlama / T4 ($n=30$).](results/optimizer_colab_t4_scale/figures/predictor_ablation.png)
 
 | Variant | P95 $R^2$ | Tokens/s $R^2$ | Memory $R^2$ | P95 MAE | Tok/s MAE | Mem MAE |
 |---------|----------:|---------------:|-------------:|--------:|----------:|--------:|
@@ -453,7 +485,7 @@ Same qualitative story. Memory MAE jumps from $5$ MB to $721$ MB without the met
 
 **Workloads.** Synthetic token-length prompts (`prompt_for_tokens`), greedy decode, batch $1$ in search. Sliding-window KV is truncation. Speculative and continuous-batching suites are research loops.
 
-**Energy and quality.** Unsupported / not run.
+**Energy and quality.** Energy is not in hypervolume. Mac scale: NVML unsupported. T4 scale: NVML instant-watt probe only; `energy_j` is null. MMLU / GSM8K / HumanEval are not run.
 
 **Statistics.** $n_{\mathrm{seeds}}=5$; CIs miscalibrated under large $s$; no correction for looking at four budgets × two devices.
 
